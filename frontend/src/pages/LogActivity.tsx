@@ -1,1 +1,0 @@
-// Log Activity page component

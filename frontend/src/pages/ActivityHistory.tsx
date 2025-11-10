@@ -1,1 +1,0 @@
-// Activity History page component
