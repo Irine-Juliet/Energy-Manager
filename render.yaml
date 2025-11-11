@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: energy-manager
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn energy_manager.wsgi:application"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: energy-manager-db
+          property: connectionString
+
+databases:
+  - name: energy-manager-db
+    databaseName: energy_manager
+    user: energy_manager
