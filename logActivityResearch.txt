@@ -1,0 +1,452 @@
+================================================================================
+                   LOG ACTIVITY FEATURE - BEST PRACTICES RESEARCH
+                        Energy Manager Application
+================================================================================
+
+PROJECT TECH STACK:
+- Django 5.0 (using 4.2)
+- Tailwind CSS
+- Chart.js
+- SQLite
+
+FEATURE REQUIREMENTS:
+Users should be able to log an activity with the following attributes:
+  • Date
+  • Time
+  • Name/Activity Name
+  • Energy Impact: Increased or Decreased Energy
+
+================================================================================
+                            DATABASE LAYER - MODELS
+================================================================================
+
+BEST PRACTICES FOR MODEL DESIGN:
+
+1. DATETIME FIELDS IN DJANGO:
+   - Use DateField for date-only values
+   - Use TimeField for time-only values
+   - Use DateTimeField for combined date and time
+   - Recommendation: Store combined datetime using DateTimeField for easier querying
+   
+   Example Model Structure:
+   ┌─────────────────────────────────────────────────────────────┐
+   │ Activity Model:                                             │
+   ├─────────────────────────────────────────────────────────────┤
+   │ • id (AutoField - auto-generated)                           │
+   │ • name (CharField - activity description)                   │
+   │ • datetime (DateTimeField - date + time combined)          │
+   │ • energy_impact (IntegerField or CharField with choices)    │
+   │ • user (ForeignKey - associate with user)                   │
+   │ • created_at (DateTimeField - auto_now_add for tracking)   │
+   └─────────────────────────────────────────────────────────────┘
+
+2. ENERGY IMPACT FIELD:
+   - Use model choices (TextChoices or IntegerChoices)
+   - Django best practice: Define as tuple choices
+   - Examples:
+     Option A: Simple Boolean-like (INCREASED, DECREASED)
+     Option B: Spectrum Range (-2 to +2 as per README energy ratings)
+   
+   Recommended Implementation (IntegerField with choices):
+   ```
+   ENERGY_IMPACT_CHOICES = [
+       (-2, "Significantly Decreased"),
+       (-1, "Slightly Decreased"),
+       (1, "Slightly Increased"),
+       (2, "Significantly Increased"),
+   ]
+   ```
+
+3. FIELD VALIDATION:
+   - Use Django's built-in validation through field types
+   - max_length for activity names (e.g., 255 characters)
+   - Allow null=False and blank=False for required fields
+   - Consider auto_now_add for created_at timestamp
+
+4. DATABASE CONSIDERATIONS:
+   - DateTimeField automatically generates proper SQL (DATETIME in SQLite)
+   - Use db_index=True on datetime field for efficient filtering/sorting
+   - Consider unique_together or UniqueConstraint for preventing duplicate logs
+
+================================================================================
+                            FORM LAYER - FORMS.PY
+================================================================================
+
+BEST PRACTICES FOR FORM DESIGN:
+
+1. FORM CLASS APPROACH:
+   - Use ModelForm for automatic form generation from Django model
+   - Inherits from django.forms.ModelForm
+   - Benefits: Automatic field validation, bound to model, less code duplication
+   
+   ModelForm Structure:
+   ```
+   class ActivityForm(forms.ModelForm):
+       class Meta:
+           model = Activity
+           fields = ['name', 'datetime', 'energy_impact']
+   ```
+
+2. DATE/TIME INPUT WIDGETS:
+   Django provides several widget options:
+   
+   Option A: DateTimeBaseInput (HTML5 datetime-local)
+   - Single input field combining date and time
+   - Browser provides native picker UI
+   - Format: YYYY-MM-DDTHH:mm
+   - Best for: Modern browsers, better UX
+   
+   Option B: SplitDateTimeWidget (separate date and time inputs)
+   - Two input fields (date and time)
+   - More accessible in some contexts
+   - Format: Two separate inputs
+   - Best for: Better mobile UX, clearer separation
+   
+   Option C: Custom widget or library
+   - django-crispy-forms, django-widget-tweaks
+   - Tailwind CSS integration for styling
+
+3. ENERGY IMPACT FIELD:
+   - Use RadioSelect or Select widget
+   - RadioSelect better for 2-3 options (clearer)
+   - Select widget for longer lists
+   - Recommended: RadioSelect for INCREASED/DECREASED choice
+   
+   Example:
+   ```
+   energy_impact = forms.ChoiceField(
+       widget=forms.RadioSelect(),
+       choices=[
+           ('increased', 'Increased Energy'),
+           ('decreased', 'Decreased Energy'),
+       ]
+   )
+   ```
+
+4. FIELD HELP TEXT & LABELS:
+   - Provide clear, user-friendly labels
+   - Add help_text for guidance: "Select when this activity occurred"
+   - Use required=True/False to control mandatory fields
+   
+   Example:
+   ```
+   datetime = forms.DateTimeField(
+       label="Activity Date & Time",
+       help_text="When did this activity occur?",
+       required=True
+   )
+   ```
+
+5. FORM VALIDATION:
+   - Override clean() method for cross-field validation
+   - Validate that datetime is not in the future
+   - Validate that datetime is not too far in the past
+   - Use cleaned_data dictionary
+   
+   Example:
+   ```
+   def clean(self):
+       cleaned_data = super().clean()
+       activity_datetime = cleaned_data.get('datetime')
+       if activity_datetime > timezone.now():
+           raise ValidationError("Activity time cannot be in the future")
+       return cleaned_data
+   ```
+
+6. FORM RENDERING IN TEMPLATE:
+   - Use {% csrf_token %} for security (POST requests)
+   - Render individually with control: {{ form.name }}, {{ form.datetime }}
+   - Show errors: {{ form.name.errors }}
+   - Use Tailwind classes for styling
+
+================================================================================
+                        HTML/FRONTEND LAYER - TEMPLATES
+================================================================================
+
+BEST PRACTICES FOR HTML FORM INPUTS:
+
+1. DATE/TIME INPUT TYPES (HTML5):
+   - type="datetime-local": Combines date and time in single input
+     * Native browser picker (calendar + time selector)
+     * Format: YYYY-MM-DDTHH:mm
+     * Format displayed: Localized to user's OS settings
+     * Best browser support in modern browsers
+   
+   - type="date": Date only
+     * Separate from type="time"
+     * Could be combined with type="time" for separate fields
+   
+   - type="time": Time only (HH:mm format)
+
+2. RECOMMENDED APPROACH FOR ENERGY MANAGER:
+   Use type="datetime-local" for single combined input:
+   ```html
+   <input 
+       type="datetime-local" 
+       name="datetime" 
+       id="id_datetime"
+       required
+   />
+   ```
+
+3. FORM ATTRIBUTES:
+   - method="POST" (secure for data mutations)
+   - CSRF protection with {% csrf_token %}
+   - action points to appropriate view URL
+   - enctype="application/x-www-form-urlencoded" (default)
+
+4. LABEL ASSOCIATIONS:
+   - Use <label for="id_fieldname"> for accessibility
+   - Django automatically generates id attributes
+   - Improves mobile usability (larger touch targets)
+   - Screen reader friendly
+
+5. ERROR MESSAGING:
+   - Display field-specific errors near input
+   - Use consistent error styling (Bootstrap/Tailwind classes)
+   - Show validation errors before submission attempt
+   
+   Template pattern:
+   ```html
+   <div class="field">
+       <label for="{{ form.datetime.id_for_label }}">{{ form.datetime.label }}</label>
+       {{ form.datetime }}
+       {% if form.datetime.errors %}
+           <ul class="errors">
+               {% for error in form.datetime.errors %}
+                   <li>{{ error }}</li>
+               {% endfor %}
+           </ul>
+       {% endif %}
+   </div>
+   ```
+
+6. BROWSER COMPATIBILITY & FALLBACK:
+   - Modern browsers: Use HTML5 inputs (native pickers)
+   - Older browsers: May fallback to text input
+   - Consider polyfill if needed (html5-input-polyfill)
+   - Always validate server-side (never trust client)
+
+7. USER EXPERIENCE CONSIDERATIONS:
+   - Don't require unnecessary data
+   - Pre-fill with sensible defaults (today's date, current time)
+   - Use placeholder text: "YYYY-MM-DD HH:mm"
+   - Show format guidance
+   - Validate incrementally (on blur, not just submit)
+
+8. TAILWIND CSS STYLING RECOMMENDATIONS:
+   Input wrapper: <div class="mb-4">
+   Label: <label class="block text-sm font-medium text-gray-700">
+   Input: <input class="mt-1 block w-full rounded-md border-gray-300...">
+   Error text: <p class="mt-1 text-sm text-red-600">
+
+================================================================================
+                        FORM SUBMISSION & VALIDATION FLOW
+================================================================================
+
+COMPLETE REQUEST/RESPONSE CYCLE:
+
+1. GET Request (Display Form):
+   - User navigates to log_activity page
+   - View creates blank/unbound form
+   - Template renders form with empty fields
+   - JavaScript optional: Set current date/time as default
+
+2. POST Request (Form Submission):
+   - User fills form fields
+   - User clicks "Save Activity"
+   - Browser validates HTML5 constraints (datetime-local)
+   - Form data sent to server via POST
+
+3. Server-Side Processing:
+   - View receives POST request
+   - Create bound form with request.POST data
+   - Call form.is_valid()
+   - If invalid: Re-render template with error messages
+   - If valid: 
+     * Access cleaned_data
+     * Create Activity instance
+     * Save to database
+     * Redirect to success page (dashboard or activity history)
+
+4. Error Handling:
+   - Client-side: HTML5 validation (browser native)
+   - Server-side: Django form validation (essential)
+   - Never trust client validation alone
+   - Always perform server-side validation
+
+================================================================================
+                        JAVASCRIPT ENHANCEMENTS (OPTIONAL)
+================================================================================
+
+OPTIONAL FEATURES FOR BETTER UX:
+
+1. SET DEFAULT DATETIME:
+   ```javascript
+   document.addEventListener('DOMContentLoaded', function() {
+       const datetimeInput = document.getElementById('id_datetime');
+       const now = new Date();
+       const localDateTime = now.toISOString().slice(0, 16);
+       datetimeInput.value = localDateTime;
+   });
+   ```
+
+2. VALIDATION ON CHANGE:
+   - Highlight invalid inputs in real-time
+   - Disable future dates
+   - Show remaining character count for activity name
+
+3. ENERGY IMPACT SELECTION:
+   - Use toggle/buttons instead of radio buttons
+   - Add icons (⬆️ for increased, ⬇️ for decreased)
+   - Visual feedback on selection
+
+================================================================================
+                        ACCESSIBILITY & BEST PRACTICES
+================================================================================
+
+CRITICAL ACCESSIBILITY FEATURES:
+
+1. SEMANTIC HTML:
+   - Use <form> tags properly
+   - Use <label> tags (not just placeholder)
+   - Use <fieldset> and <legend> for grouping
+   - Proper heading hierarchy
+
+2. ARIA ATTRIBUTES:
+   - aria-required="true" for required fields
+   - aria-invalid="true" on error fields
+   - aria-describedby for error/help text
+
+3. KEYBOARD NAVIGATION:
+   - Tab order logical (left to right, top to bottom)
+   - Focus indicators visible
+   - Submit button accessible via keyboard
+
+4. COLOR CONTRAST:
+   - Use Tailwind's color utilities
+   - Ensure WCAG AA compliance (4.5:1 for text)
+   - Don't rely on color alone for errors
+
+5. MOBILE RESPONSIVENESS:
+   - Full-width inputs on small screens
+   - Touch-friendly button sizes (min 44x44px)
+   - datetime-local picker optimized for touch
+   - Responsive label/input stacking
+
+================================================================================
+                        SECURITY CONSIDERATIONS
+================================================================================
+
+CRITICAL SECURITY MEASURES:
+
+1. CSRF PROTECTION:
+   - Always include {% csrf_token %} in forms
+   - Django middleware validates automatically
+   - Essential for POST/PUT/DELETE requests
+
+2. INPUT VALIDATION:
+   - Never trust client-side validation alone
+   - Django form validation runs server-side
+   - Check data types, ranges, lengths
+
+3. SQL INJECTION PREVENTION:
+   - Use Django ORM (automatic parameterization)
+   - Never use raw SQL with user input
+   - DateTimeField handles parsing safely
+
+4. USER AUTHENTICATION:
+   - Verify user is authenticated
+   - Verify user owns the activity being logged
+   - Use login_required decorator on views
+
+5. RATE LIMITING:
+   - Consider rate limiting form submissions
+   - Prevent spam/abuse of activity logging
+   - Implement in middleware or view
+
+================================================================================
+                        IMPLEMENTATION CHECKLIST
+================================================================================
+
+DATABASE:
+☐ Create Activity model with: name, datetime, energy_impact, user, created_at
+☐ Use DateTimeField for combined date+time
+☐ Add choices for energy_impact (increased/decreased)
+☐ Run makemigrations and migrate
+
+FORMS:
+☐ Create ActivityForm as ModelForm
+☐ Customize datetime widget (datetime-local recommended)
+☐ Customize energy_impact widget (RadioSelect recommended)
+☐ Add clean() method for datetime validation
+☐ Add helpful labels and help_text
+
+VIEWS:
+☐ Create log_activity view for GET (display form)
+☐ Create log_activity view for POST (process form)
+☐ Add login_required decorator
+☐ Redirect after successful save
+☐ Handle form errors and re-render
+
+TEMPLATES:
+☐ Create log_activity.html template
+☐ Include {% csrf_token %}
+☐ Style with Tailwind CSS
+☐ Display field errors clearly
+☐ Add submit button
+☐ Optional: Add success message
+
+TESTING:
+☐ Test form validation with invalid data
+☐ Test form validation with future dates
+☐ Test successful activity creation
+☐ Test with various browsers
+☐ Test mobile responsiveness
+☐ Test accessibility (keyboard, screen reader)
+
+================================================================================
+                        RESOURCES & REFERENCES
+================================================================================
+
+Official Documentation:
+- Django Models: https://docs.djangoproject.com/en/4.2/topics/db/models/
+- Django Forms: https://docs.djangoproject.com/en/4.2/topics/forms/
+- HTML5 datetime-local: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/datetime-local
+
+Key Takeaways:
+1. Use DateTimeField in model for combined date/time
+2. Use ModelForm for automatic validation
+3. Use HTML5 datetime-local input for best UX
+4. Always validate server-side
+5. Implement CSRF protection
+6. Follow accessibility guidelines
+7. Style with Tailwind CSS
+8. Test thoroughly before release
+
+================================================================================
+                        ENERGY TRACKER SPECIFIC NOTES
+================================================================================
+
+Based on README Requirements:
+- README mentions "energy ratings (-2 to +2)"
+- Consider expanding model to support numeric scale
+- Implement as IntegerField with choices (-2 to +2)
+- This allows future analytics (average impact, trends)
+- Better for Chart.js visualization in dashboard
+
+Alternative Simple Approach (Binary):
+- If only "increased" vs "decreased" needed
+- Use BooleanField or CharField with 2 choices
+- Simpler for now, can expand later
+
+Recommendation:
+Implement numeric scale (-2 to +2) as per README feature list
+This aligns with existing "Weekly energy trend visualization" feature
+Store as separate fields if needed:
+  • impact_type: increased/decreased
+  • impact_level: -2, -1, 1, 2
+
+================================================================================
+                            END OF RESEARCH
+================================================================================
