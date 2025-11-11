@@ -2,6 +2,8 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from .models import Activity
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 
 class SignUpForm(UserCreationForm):
@@ -69,3 +71,31 @@ class ActivityForm(forms.ModelForm):
             'energy_level': 'How did this make you feel?',
             'activity_date': 'When did this happen?',
         }
+
+    def clean(self):
+        """Form-level validation: no future activity_date, name required, energy range check."""
+        cleaned = super().clean()
+        activity_date = cleaned.get('activity_date')
+        name = cleaned.get('name')
+        energy = cleaned.get('energy_level')
+
+        # Name required (Model has no blank restriction beyond CharField, keep explicit)
+        if not name:
+            raise ValidationError({'name': 'Please enter an activity name.'})
+
+        # If a date was provided, ensure it's not in the future
+        if activity_date:
+            # make aware if naive and USE_TZ is enabled
+            try:
+                now = timezone.now()
+                if activity_date > now:
+                    raise ValidationError({'activity_date': 'Activity date cannot be in the future.'})
+            except TypeError:
+                # In case of unexpected types, let field-level validators handle it
+                pass
+
+        # Energy level must be in allowed range
+        if energy is None or not (-2 <= int(energy) <= 2):
+            raise ValidationError({'energy_level': 'Invalid energy value.'})
+
+        return cleaned

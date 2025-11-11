@@ -27,6 +27,11 @@ class Activity(models.Model):
     class Meta:
         ordering = ['-activity_date']
         verbose_name_plural = 'Activities'
+        # Explicit app_label to avoid import-time app detection issues when the
+        # project/workspace directory name contains characters (like '-') that
+        # make Python package/module names invalid. This keeps tests importable
+        # and is safe because the real app label is `energy_tracker`.
+        app_label = 'energy_tracker'
     
     def __str__(self):
         return f"{self.name} ({self.get_energy_level_display()})"
