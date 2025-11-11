@@ -1,7 +1,7 @@
 services:
   - type: web
     name: energy-manager
-    env: python
+    runtime: python
     buildCommand: "./build.sh"
     startCommand: "gunicorn energy_manager.wsgi:application"
     envVars:
