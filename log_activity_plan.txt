@@ -1,0 +1,95 @@
+LOG ACTIVITY FEATURE - IMPLEMENTATION PLAN
+Energy Manager Application
+
+Date: 2025-11-10
+
+SUMMARY
+Users should be able to log an activity with these attributes:
+  - Date (date + time)
+  - Time (as part of datetime)
+  - Name (activity name)
+  - Energy impact: a numeric scale that indicates increased or decreased energy
+
+CONTRACT (inputs/outputs)
+- Inputs: authenticated user; name (string); optional description (string); activity datetime (date+time, optional); energy impact (integer in -2..2).
+- Output: Activity record persisted with fields: name, description, activity_date (DateTime), energy_level (Integer -2..2), user, created_at.
+- Success: valid data saved; user redirected to dashboard; errors shown inline.
+- Errors: invalid datetime (future), missing name, invalid energy value.
+
+CURRENT CODEBASE FINDINGS
+- `energy_tracker/models.py` already defines `Activity` with fields: user, name, description, energy_level (choices -2..2), activity_date (DateTimeField defaulting to now), created_at/updated_at.
+- `energy_tracker/forms.py` contains `ActivityForm` using DateTimeInput type=datetime-local and RadioSelect for energy_level.
+- `energy_tracker/views.py` contains `log_activity_view` handling GET/POST, sets activity.user, and uses timezone.now() when no date provided.
+- `templates/energy_tracker/log_activity.html` is currently a placeholder.
+
+DECISIONS
+- No model change required. The existing `Activity` schema is suitable.
+- Keep `energy_level` as IntegerField with choices -2..2 (allows analytics and Chart.js integration later).
+- Recommended UX: Use a range input (slider) min=-2 max=2 step=1 for quick visual selection, but keep the RadioSelect fallback or accessible elements for screen readers and non-JS users.
+- Server-side validation: ensure `activity_date` is not in the future (enforce in `ActivityForm.clean()`), and `name` is present.
+- Timezone: `datetime-local` provides local naive datetime. Confirm `USE_TZ` in settings and convert/make aware if needed. Current code relies on Django DateTimeField handling.
+
+TEMPLATE / UI SPEC
+- File to edit: `templates/energy_tracker/log_activity.html`.
+- Use Tailwind styling consistent with other forms.
+- Render fields individually (not `{{ form.as_p }}`) so we can place the range input and descriptor.
+- Fields to display:
+  - Activity Name (text input)
+  - Description (textarea, optional)
+  - Activity Date & Time (input type="datetime-local") — prefill with current local datetime on page load
+  - Energy Impact (slider): `<input type="range" min="-2" max="2" step="1">` with a dynamic descriptor (e.g., "-2 Very Draining" -> "2 Very Energizing")
+  - Keep `{{ form.energy_level }}` rendered for screen readers / non-JS fallback (can be visually hidden but accessible)
+  - Submit button with `{% csrf_token %}`
+- Add a small JS snippet to prefill datetime and update energy descriptor in an `aria-live` region.
+
+FORM & VIEW CHANGES
+- `energy_tracker/forms.py`:
+  - Add `clean()` to `ActivityForm` to reject future `activity_date` values (allow small tolerance if desired).
+  - Optionally, set widget attrs for `energy_level` for consistent rendering.
+- `energy_tracker/views.py`:
+  - No change required; `log_activity_view` already saves `activity.user` and defaults `activity_date` to now if not provided. Ensure `login_required` is present (it is).
+
+ACCESSIBILITY
+- All inputs must have `<label for="...">`.
+- The energy descriptor should be in an `aria-live="polite"` region to announce changes.
+- Keep keyboard operability for the slider.
+- Provide clear error messages near the inputs.
+
+EDGE CASES & VALIDATION
+- Missing datetime -> server uses current time (view does this already).
+- Future datetime -> reject via form clean() and show error.
+- Energy out-of-range -> Django field validation will handle invalid values; add explicit cleaning if using custom JS widget.
+- Timezone handling: ensure awareness of `USE_TZ` setting.
+
+TESTS TO ADD
+- Form tests:
+  - Saving with valid data and energy values -2..2 saves correctly.
+  - Reject future `activity_date`.
+- View tests:
+  - Authenticated POST creates Activity and redirects to dashboard.
+  - Unauthenticated user gets redirected to login.
+- Integration test: POST with missing date -> record created with recent timestamp.
+
+IMPLEMENTATION STEPS (minimally invasive)
+1. Edit `templates/energy_tracker/log_activity.html` to implement the full form UI with slider and JS.
+2. Update `energy_tracker/forms.py` to add form-level validation (`clean()` for future datetimes) and optionally add widget attributes for the slider.
+3. Add tests to `energy_tracker/tests.py` for form and view behavior.
+4. Run `python manage.py test energy_tracker` and fix any issues.
+5. Manually verify in browser and adjust styling/accessibility.
+
+FILES TO CHANGE
+- templates/energy_tracker/log_activity.html  — replace placeholder HTML with full form UI
+- energy_tracker/forms.py  — add `clean()` and optional widget attrs
+- energy_tracker/tests.py  — add tests
+- (no model or migration files required)
+
+QA / QUALITY GATES
+- Build: N/A beyond Django runtime
+- Lint: run project's linters if configured
+- Tests: run Django tests for `energy_tracker`
+- Manual: verify component in browser while logged in
+
+NEXT ACTIONS
+If you want, I can implement the template and small form changes now and add a couple of tests. Tell me to proceed and I'll make the edits and run tests.
+
+END OF PLAN
