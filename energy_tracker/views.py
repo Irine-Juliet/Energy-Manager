@@ -12,10 +12,36 @@ from .models import Activity
 from .forms import SignUpForm, ActivityForm
 
 
+@login_required
+def homepage_view(request):
+    """Homepage showing today's energy level, recent activities, and quick log button"""
+    today = timezone.now().date()
+    
+    # Get today's activities
+    today_activities = Activity.objects.filter(
+        user=request.user,
+        activity_date__date=today
+    )
+    
+    # Calculate today's average energy level
+    today_avg = today_activities.aggregate(Avg('energy_level'))['energy_level__avg']
+    
+    # Get 5 most recent activities for today
+    recent_activities = today_activities[:5]
+    
+    context = {
+        'today_avg': round(today_avg, 1) if today_avg is not None else None,
+        'recent_activities': recent_activities,
+        'activity_count': today_activities.count(),
+    }
+    
+    return render(request, 'energy_tracker/homepage.html', context)
+
+
 def signup_view(request):
     """User registration view using Django's built-in User model"""
     if request.user.is_authenticated:
-        return redirect('dashboard')
+        return redirect('homepage')
     
     if request.method == 'POST':
         form = SignUpForm(request.POST)
@@ -23,7 +49,7 @@ def signup_view(request):
             user = form.save()
             login(request, user)  # Automatically log in after signup
             messages.success(request, f'Welcome {user.username}! Your account has been created.')
-            return redirect('dashboard')
+            return redirect('homepage')
     else:
         form = SignUpForm()
     
@@ -33,7 +59,7 @@ def signup_view(request):
 def login_view(request):
     """User login view using Django's built-in authentication"""
     if request.user.is_authenticated:
-        return redirect('dashboard')
+        return redirect('homepage')
     
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -43,7 +69,7 @@ def login_view(request):
         if user is not None:
             login(request, user)
             messages.success(request, f'Welcome back, {user.username}!')
-            return redirect('dashboard')
+            return redirect('homepage')
         else:
             messages.error(request, 'Invalid username or password.')
     
@@ -135,7 +161,7 @@ def log_activity_view(request):
             
             activity.save()
             messages.success(request, f'Activity "{activity.name}" logged successfully!')
-            return redirect('dashboard')
+            return redirect('homepage')
     else:
         form = ActivityForm()
     
