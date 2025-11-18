@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Energy Manager{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+    <!-- Welcome Header -->
+    <div class="text-center">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">Hello, {{ user.username }}! 👋</h1>
+        <p class="text-gray-600">How's your energy today?</p>
+    </div>
+
+    <!-- Current Energy Level Display -->
+    <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl p-8 text-white">
+        <div class="text-center">
+            <h2 class="text-xl font-semibold mb-4 opacity-90">Today's Energy Level</h2>
+            {% if today_avg is not None %}
+                <div class="text-7xl font-bold mb-2">
+                    {% if today_avg >= 1.5 %}🚀
+                    {% elif today_avg >= 0.5 %}😊
+                    {% elif today_avg >= -0.5 %}😐
+                    {% elif today_avg >= -1.5 %}😔
+                    {% else %}😫
+                    {% endif %}
+                </div>
+                <div class="text-5xl font-bold mb-2">{{ today_avg }}</div>
+                <p class="text-lg opacity-90">
+                    {% if today_avg >= 1.5 %}
+                        Amazing! You're in flow state!
+                    {% elif today_avg >= 0.5 %}
+                        Great! Feeling energized!
+                    {% elif today_avg >= -0.5 %}
+                        Balanced and steady
+                    {% elif today_avg >= -1.5 %}
+                        A bit drained today
+                    {% else %}
+                        Time to recharge
+                    {% endif %}
+                </p>
+                <p class="text-sm mt-2 opacity-75">Based on {{ activity_count }} activit{{ activity_count|pluralize:"y,ies" }} today</p>
+            {% else %}
+                <div class="text-7xl font-bold mb-4">✨</div>
+                <p class="text-2xl font-semibold mb-2">No activities logged yet</p>
+                <p class="text-lg opacity-90">Start tracking to see your energy level!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Log Activity Button - Prominent and Inviting -->
+    <div class="text-center">
+        <a href="{% url 'log_activity' %}" class="inline-flex items-center px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Log an Activity
+        </a>
+        <p class="text-sm text-gray-500 mt-3">Track what you're doing and how it affects your energy</p>
+    </div>
+
+    <!-- Recent Activities for Today -->
+    {% if recent_activities %}
+    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900">Today's Recent Activities</h2>
+        </div>
+        <div class="divide-y divide-gray-200">
+            {% for activity in recent_activities %}
+            <div class="px-6 py-4 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3 flex-1">
+                        <span class="text-3xl">{{ activity.get_energy_emoji }}</span>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-900">{{ activity.name }}</h3>
+                            {% if activity.description %}
+                            <p class="text-sm text-gray-500 mt-1">{{ activity.description }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                            {% if activity.energy_level > 0 %}bg-green-100 text-green-800
+                            {% elif activity.energy_level == -1 %}bg-orange-100 text-orange-800
+                            {% else %}bg-red-100 text-red-800
+                            {% endif %}">
+                            {{ activity.get_energy_level_display }}
+                        </span>
+                        <span class="text-sm text-gray-500">
+                            {{ activity.activity_date|date:"g:i A" }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if activity_count > 5 %}
+        <div class="px-6 py-3 bg-gray-50 text-center border-t border-gray-200">
+            <a href="{% url 'activity_history' %}" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+                View all {{ activity_count }} activities today →
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow-md p-8 text-center">
+        <div class="text-5xl mb-4">📝</div>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">No activities today</h3>
+        <p class="text-gray-600 mb-4">Start logging your activities to track your energy levels throughout the day!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

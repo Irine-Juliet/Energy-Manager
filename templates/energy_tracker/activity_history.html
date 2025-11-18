@@ -1,13 +1,92 @@
 {% extends "base.html" %}
 
-{% block title %}Activity History - Energy Manager{% endblock %}
+{% block title %}History - Energy Manager{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto">
-    <h1 class="text-3xl font-bold text-gray-900 mb-6">Activity History</h1>
-    
-    <div class="bg-white rounded-lg shadow-md p-8">
-        <p class="text-gray-600 text-center">Activity history feature coming soon!</p>
-    </div>
-</div>
-{% endblock %}
+<div class="max-w-4xl mx-auto py-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">History</h1>
+
+    <div class="mb-4 bg-white rounded-lg shadow-sm p-4">
+        <div class="flex items-center space-x-3 mb-3">
+            <!-- Toggle buttons -->
+            {% comment %} Keep query params when switching view {% endcomment %}
+            <div class="flex space-x-2">
+                     <a href="?view=day{% if q %}&q={{ q|urlencode }}{% endif %}{% if energy_filter %}&energy={{ energy_filter }}{% endif %}"
+                         class="px-4 py-2 rounded {% if view == 'day' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-800{% endif %}">Day</a>
+
+                     <a href="?view=week{% if q %}&q={{ q|urlencode }}{% endif %}{% if energy_filter %}&energy={{ energy_filter }}{% endif %}"
+                         class="px-4 py-2 rounded {% if view == 'week' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-800{% endif %}">Week</a>
+
+                    <a href="?view=month{% if q %}&q={{ q|urlencode }}{% endif %}{% if energy_filter %}&energy={{ energy_filter }}{% endif %}"
+                                 class="px-4 py-2 rounded {% if view == 'month' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-800{% endif %}">Month</a>
+                    </div>
+
+                    <!-- Search form -->
+                    <form method="get" class="ml-auto flex items-center space-x-2">
+                        <input type="hidden" name="view" value="{{ view }}" />
+                        {% if energy_filter %}<input type="hidden" name="energy" value="{{ energy_filter }}" />{% endif %}
+                        <input
+                            name="q"
+                            value="{{ q }}"
+                            placeholder="Search activities..."
+                            class="border rounded px-3 py-2 w-64"
+                        />
+                        <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded">Search</button>
+                    </form>
+                </div>
+
+                <!-- Summary -->
+                <p class="text-sm text-gray-600">Showing activities for: <strong>{{ view|capfirst }}</strong></p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4">
+                {% if page_obj.object_list %}
+                    <ul class="space-y-3">
+                        {% for activity in page_obj.object_list %}
+                            <li class="border rounded p-3">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="text-lg font-semibold">{{ activity.name }}</h3>
+                                        <p class="text-sm text-gray-600">{{ activity.get_energy_level_display }} • {{ activity.activity_date|date:"M d, Y H:i" }}</p>
+                                        {% if activity.description %}
+                                            <p class="mt-2 text-gray-700">{{ activity.description|linebreaksbr }}</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-right text-sm text-gray-600">
+                                        <p>Recorded: {{ activity.created_at|date:"M d, Y H:i" }}</p>
+                                        <div class="mt-2">
+                                            <a href="{% url 'edit_activity' activity.pk %}" class="text-blue-600 mr-2">Edit</a>
+                                            <a href="{% url 'delete_activity' activity.pk %}" class="text-red-600">Delete</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Extra fields: show any non-standard fields if present -->
+                                <div class="mt-3 text-sm text-gray-700">
+                                    {% comment %} Show updated_at if it differs from created_at {% endcomment %}
+                                    {% if activity.updated_at and activity.updated_at != activity.created_at %}
+                                        <div>Updated: {{ activity.updated_at|date:"M d, Y H:i" }}</div>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <!-- Pagination controls -->
+                    <div class="mt-4 flex items-center justify-between">
+                        <div class="text-sm text-gray-600">Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }}</div>
+                        <div class="space-x-2">
+                            {% if page_obj.has_previous %}
+                                <a href="?page={{ page_obj.previous_page_number }}&view={{ view }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if energy_filter %}&energy={{ energy_filter }}{% endif %}" class="px-3 py-1 bg-gray-100 rounded">Previous</a>
+                            {% endif %}
+                            {% if page_obj.has_next %}
+                                <a href="?page={{ page_obj.next_page_number }}&view={{ view }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if energy_filter %}&energy={{ energy_filter }}{% endif %}" class="px-3 py-1 bg-gray-100 rounded">Next</a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                {% else %}
+                    <div class="py-12 text-center text-gray-600">No activities found for the selected period.</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endblock %}
