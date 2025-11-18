@@ -344,7 +344,10 @@ def edit_activity_view(request, pk):
     if request.method == 'POST':
         form = ActivityForm(request.POST, instance=activity)
         if form.is_valid():
-            form.save()
+            updated_activity = form.save(commit=False)
+            # Set duration from form's calculated value
+            updated_activity.duration = form.cleaned_data['duration']
+            updated_activity.save()
             messages.success(request, 'Activity updated successfully!')
             return redirect('activity_history')
     else:
