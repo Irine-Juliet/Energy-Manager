@@ -1,25 +1,252 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block title %}Dashboard - Energy Manager{% endblock %}
 
-{% block content %}
-<div class="space-y-6">
-    <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold text-gray-900">Welcome, {{ user.username }}! 👋</h1>
-    </div>
-
-    <!-- Placeholder for future features -->
-    <div class="bg-white rounded-lg shadow-md p-8 text-center">
-        <div class="max-w-2xl mx-auto">
-            <div class="text-6xl mb-4">⚡</div>
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">Your Energy Dashboard</h2>
-            <p class="text-gray-600 mb-6">
-                This is where you'll track your daily energy levels and see your progress over time.
-            </p>
-            <p class="text-sm text-gray-500">
-                More features coming soon: activity logging, energy charts, and history tracking!
-            </p>
-        </div>
-    </div>
-</div>
+{% block extra_head %}
+    <!-- Chart.js v4 and date adapter (needed for time scale) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        /* Custom scrollbar for insights panel */
+        .insights-panel::-webkit-scrollbar { width: 6px; }
+        .insights-panel::-webkit-scrollbar-track { background: #f3f4f6; }
+        .insights-panel::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 3px; }
+        .insights-panel::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+    </style>
 {% endblock %}
+
+{% block content %}
+    <!-- Main Content Area -->
+    <div class="bg-gray-50 rounded-lg shadow-sm p-6">
+
+        <!-- Top Row: Line Graph & Current Status -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+            <!-- Element 1: Smooth Line Graph -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Today's Energy Flow</h2>
+                <div class="h-80 md:h-96">
+                    <canvas id="energyOverTimeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Element 2: Current Energy Level -->
+            <div class="bg-white p-6 rounded-xl shadow flex flex-col items-center justify-center h-full min-h-[200px] lg:min-h-0">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Current Status</h2>
+                <!-- This content will be populated by JavaScript -->
+                <div id="currentEnergyStatus" class="flex flex-col items-center justify-center text-center">
+                    <p class="mt-4 text-xl font-medium text-gray-500">Calculating...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Bar Chart & Insights Panel -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Element 3: Bar Chart -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Time per Energy State</h2>
+                <div class="h-96">
+                    <canvas id="hoursPerCategoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Insights Panel (controlled by bar chart hover) -->
+            <div class="bg-white p-6 rounded-xl shadow">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Insights</h2>
+                <!-- This content will be populated by JavaScript on hover -->
+                <div id="insightsPanel" class="insights-panel h-96 overflow-y-auto">
+                    <div class="flex flex-col items-center justify-center h-full text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mb-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.5-2.5m2.5 2.5l-2.5-2.5M13.684 16.6l-2.5-2.5m2.5 2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5M15.042 21.672L13.684 16.6M11.958 8.672L10.5 3.6m0 0l-2.5 2.5m2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5M11.958 8.672L10.5 3.6m2.5 2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5m-2.5-2.5l-2.5 2.5" />
+                        </svg>
+                        <p class="text-center">Hover over the bar chart<br>to see details.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        // Injected data from server
+        const activityLog = {{ activity_points|safe }} || [];
+        const hourlyAvg = {{ hourly_avg|safe }} || Array(24).fill(null);
+        const hoursPerCategory = {{ hours_per_category|safe }} || {'-1':0,'0':0,'1':0,'2':0};
+
+        const ENERGY_LEVELS = {
+            '-1': { label: 'Draining', color: 'rgba(239, 68, 68, 0.7)', emoji: '🪫' },
+            '0': { label: 'Neutral', color: 'rgba(107, 114, 128, 0.7)', emoji: '😶' },
+            '1': { label: 'Energizing', color: 'rgba(34, 197, 94, 0.7)', emoji: '😃' },
+            '2': { label: 'Flow State', color: 'rgba(59, 130, 246, 0.7)', emoji: '🤩' },
+        };
+
+        const iconDrained = `<svg class="w-20 h-20 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 16.318A4.5 4.5 0 0012 15a4.5 4.5 0 00-3.182 1.318M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 9.75h.008v.008H9V9.75zm0 3.75h.008v.008H9v-.008zm6-3.75h.008v.008H15V9.75zm0 3.75h.008v.008H15v-.008z" /></svg>`;
+        const iconNeutral = `<svg class="w-20 h-20 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 12h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zM21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 9.75h.008v.008H9V9.75zm0 3.75h.008v.008H9v-.008zm6-3.75h.008v.008H15V9.75zm0 3.75h.008v.008H15v-.008z" /></svg>`;
+        const iconEnergized = `<svg class="w-20 h-20 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 9.75h.008v.008H9V9.75zm0 3.75h.008v.008H9v-.008zm6-3.75h.008v.008H15V9.75zm0 3.75h.008v.008H15v-.008z" /></svg>`;
+        const iconFlow = `<svg class="w-20 h-20 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A9.005 9.005 0 0112 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-1.631-.44-3.15-1.2-4.438M12 12h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zM9.75 15h.008v.008H9.75V15zm0-3h.008v.008H9.75v-.008zm3 0h.008v.008H12.75v-.008zm3 0h.008v.008H15.75v-.008zm-3-3h.008v.008H12.75V9zm3 0h.008v.008H15.75V9z" /></svg>`;
+
+        Chart.defaults.color = '#111827';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const ctxLine = document.getElementById('energyOverTimeChart')?.getContext('2d');
+            const ctxBar = document.getElementById('hoursPerCategoryChart')?.getContext('2d');
+            const statusEl = document.getElementById('currentEnergyStatus');
+            const insightsEl = document.getElementById('insightsPanel');
+
+            if (!ctxLine || !ctxBar || !statusEl || !insightsEl) return;
+
+            const lineData = activityLog.map(e => ({ x: new Date(e.startTime).getTime(), y: e.energy })).sort((a,b)=>a.x-b.x);
+
+            new Chart(ctxLine, {
+                type: 'line',
+                data: { datasets: [{ label: 'Energy Level', data: lineData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)', fill:true, tension:0.4, pointRadius:5 }]},
+                options: {
+                    responsive:true, maintainAspectRatio:false,
+                    scales: {
+                        x: { type: 'time', time: { unit: 'hour', displayFormats:{hour:'HH:00'}, tooltipFormat:'HH:mm' }, min: new Date().setHours(0,0,0,0), max: new Date().setHours(23,59,59,999) },
+                        y: { min:-2.5, max:2.5, ticks:{ stepSize:1, callback: v => { const map={ '-1': `${ENERGY_LEVELS['-1'].emoji} ${ENERGY_LEVELS['-1'].label}`, '0': `${ENERGY_LEVELS['0'].emoji} ${ENERGY_LEVELS['0'].label}`, '1': `${ENERGY_LEVELS['1'].emoji} ${ENERGY_LEVELS['1'].label}`, '2': `${ENERGY_LEVELS['2'].emoji} ${ENERGY_LEVELS['2'].label}` }; return map.hasOwnProperty(v)?map[v]:'' } } }
+                    }
+                }
+            });
+
+            // Current status using server avg
+            const serverAvg = Number({{ today_avg|default:0 }});
+            let icon = iconNeutral, text = 'Feeling Neutral', colorClass='text-gray-500';
+            if (serverAvg > 1.25) { icon=iconFlow; text='In the Flow!'; colorClass='text-blue-500'; }
+            else if (serverAvg > 0.25) { icon=iconEnergized; text='Feeling Energized'; colorClass='text-green-500'; }
+            else if (serverAvg < -0.25) { icon=iconDrained; text='Feeling Drained'; colorClass='text-red-500'; }
+            statusEl.innerHTML = `${icon}<p class="mt-4 text-2xl font-semibold ${colorClass}">${text}</p><p class="text-sm text-gray-500 mt-1">Average: ${serverAvg.toFixed(2)}</p>`;
+
+            // Bar chart
+            const labels = Object.values(ENERGY_LEVELS).map(v=>v.label);
+            const data = Object.keys(hoursPerCategory).map(k=>hoursPerCategory[k]);
+            const colors = Object.values(ENERGY_LEVELS).map(v=>v.color);
+
+            const bar = new Chart(ctxBar, { type:'bar', data:{ labels, datasets:[{ data, backgroundColor:colors }]}, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}}, onHover:(evt, elems)=>{ const canvas=evt.native.target; if (elems.length){ canvas.style.cursor='pointer'; const idx=elems[0].index; updateInsights(Object.keys(hoursPerCategory)[idx], data[idx]); } else { canvas.style.cursor='default'; clearInsights(); } }, onClick:(evt, elems)=>{ if (elems.length){ const idx=elems[0].index; updateInsights(Object.keys(hoursPerCategory)[idx], data[idx]); } } } });
+
+            function updateInsights(key, hours){ const info=ENERGY_LEVELS[key]; const acts = activityLog.filter(a=>String(a.energy)===String(key)).map(a=>`<li class=\"py-2 px-3 bg-gray-100 rounded-lg mb-2\"><span class=\"font-medium\">${a.name}</span> <span class=\"text-sm text-gray-500\"> (${new Date(a.startTime).toLocaleTimeString()} )</span></li>`).join(''); insightsEl.innerHTML = `<h3 class=\"text-2xl font-bold mb-4\" style=\"color:${info.color}\">${info.label}</h3><p class=\"text-4xl font-light mb-6\">${hours} <span class=\"text-lg\">hours logged</span></p><h4 class=\"text-lg font-semibold mb-3 text-gray-800\">Logged Activities</h4><ul class=\"space-y-2\">${acts.length?acts:'<li class=\"text-gray-500\">No activities logged for this state.</li>'}</ul>`; }
+            function clearInsights(){ insightsEl.innerHTML = `<div class=\"flex flex-col items-center justify-center h-full text-gray-500\"><svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" class=\"w-12 h-12 mb-4\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M15.042 21.672L13.684 16.6m0 0l-2.5-2.5m2.5 2.5l-2.5-2.5M13.684 16.6l-2.5-2.5m2.5 2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5M15.042 21.672L13.684 16.6M11.958 8.672L10.5 3.6m0 0l-2.5 2.5m2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5M11.958 8.672L10.5 3.6m2.5 2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5m-2.5-2.5l-2.5 2.5\" /></svg><p class=\"text-center\">Hover over the bar chart<br>to see details.</p></div>`; }
+        });
+    </script>
+{% endblock %}
+
+            let currentHoverIndex = null; // To track hover state
+
+            const barChart = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: barChartLabels,
+                    datasets: [{
+                        label: 'Hours Spent',
+                        data: barChartData,
+                        backgroundColor: barChartColors,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // Makes it a horizontal bar chart
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Hours'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    // --- Hover Interaction ---
+                    onHover: (event, chartElements) => {
+                        const canvas = event.native.target;
+                        
+                        if (chartElements.length > 0) {
+                            const index = chartElements[0].index;
+                            canvas.style.cursor = 'pointer';
+
+                            // Only update if hover index has changed
+                            if (index !== currentHoverIndex) {
+                                currentHoverIndex = index;
+                                const energyKey = Object.keys(categoryTotals)[index];
+                                updateInsightsPanel(energyKey, categoryTotals[energyKey]);
+                            }
+                        } else {
+                            // No element is being hovered
+                            canvas.style.cursor = 'default';
+                            if (currentHoverIndex !== null) {
+                                currentHoverIndex = null;
+                                clearInsightsPanel();
+                            }
+                        }
+                    },
+                    // Also add onClick as a fallback for mobile
+                    onClick: (event, chartElements) => {
+                         if (chartElements.length > 0) {
+                            const index = chartElements[0].index;
+                            currentHoverIndex = index; // Sync hover and click state
+                            const energyKey = Object.keys(categoryTotals)[index];
+                            updateInsightsPanel(energyKey, categoryTotals[energyKey]);
+                        }
+                    }
+                }
+            });
+
+            // --- 4. Insights Panel Functions ---
+            
+            function updateInsightsPanel(energyKey, hours) {
+                const levelInfo = ENERGY_LEVELS[energyKey];
+                
+                // Find all activities for this category
+                const activities = mockActivityLog
+                    .filter(entry => entry.energy == energyKey)
+                    .map(entry => `
+                        <li class="py-2 px-3 bg-gray-700 rounded-lg mb-2">
+                            <span class="font-medium">${entry.name}</span>
+                            <span class="text-sm text-gray-400"> (${entry.duration}h)</span>
+                        </li>
+                    `)
+                    .join('');
+
+                insightsEl.innerHTML = `
+                    <h3 class="text-2xl font-bold mb-4" style="color: ${levelInfo.color}">${levelInfo.label}</h3>
+                    <p class="text-4xl font-light mb-6">${hours.toFixed(1)} <span class="text-lg">hours logged</span></p>
+                    <h4 class="text-lg font-semibold mb-3 text-white">Logged Activities</h4>
+                    <ul class="space-y-2">
+                        ${activities.length > 0 ? activities : '<li class="text-gray-500">No activities logged for this state.</li>'}
+                    </ul>
+                `;
+            }
+
+            function clearInsightsPanel() {
+                insightsEl.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mb-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.5-2.5m2.5 2.5l-2.5-2.5M13.684 16.6l-2.5-2.5m2.5 2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5M15.042 21.672L13.684 16.6M11.958 8.672L10.5 3.6m0 0l-2.5 2.5m2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5M11.958 8.672L10.5 3.6m2.5 2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5m-2.5-2.5l-2.5 2.5" />
+                        </svg>
+                        <p class="text-center">Hover over the bar chart<br>to see details.</p>
+                    </div>
+                `;
+            }
+
+        }); // End DOMContentLoaded
+    </script>
+
+</body>
+</html>
