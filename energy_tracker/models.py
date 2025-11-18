@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class Activity(models.Model):
@@ -46,3 +49,31 @@ class Activity(models.Model):
             2: '🚀',
         }
         return emoji_map.get(self.energy_level, '😐')
+
+
+class UserProfile(models.Model):
+    """Simple user profile to store UI preferences."""
+    THEME_LIGHT = 'light'
+    THEME_DARK = 'dark'
+    THEME_CHOICES = [
+        (THEME_LIGHT, 'Light'),
+        (THEME_DARK, 'Dark'),
+    ]
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    theme = models.CharField(max_length=10, choices=THEME_CHOICES, default=THEME_LIGHT)
+    notifications = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'energy_tracker'
+
+    def __str__(self):
+        return f"Profile for {self.user.username}"
+
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+    else:
+        UserProfile.objects.get_or_create(user=instance)

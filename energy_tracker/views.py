@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
 from django.db.models import Avg, Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
@@ -9,7 +11,8 @@ from django.core.paginator import Paginator
 from datetime import timedelta
 import json
 from .models import Activity
-from .forms import SignUpForm, ActivityForm
+from .forms import SignUpForm, ActivityForm, SettingsForm
+from .models import UserProfile
 
 
 def signup_view(request):
@@ -201,3 +204,65 @@ def delete_activity_view(request, pk):
         return redirect('activity_history')
     
     return render(request, 'energy_tracker/delete_activity.html', {'activity': activity})
+
+
+
+@login_required
+def settings_view(request):
+    """Allow users to change theme and notification preferences."""
+    # Ensure profile exists
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = SettingsForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            # Set a cookie so client-side can pick up theme quickly
+            theme = form.cleaned_data.get('theme', UserProfile.THEME_LIGHT)
+            response = redirect('dashboard')
+            response.set_cookie('theme', theme, max_age=60 * 60 * 24 * 365)
+            messages.success(request, 'Settings updated.')
+            return response
+    else:
+        form = SettingsForm(instance=profile)
+
+    return render(request, 'energy_tracker/settings.html', {'form': form})
+
+
+
+@login_required
+def account_view(request):
+    """Simple account page showing basic user info."""
+    user = request.user
+    profile = None
+    try:
+        profile = user.profile
+    except Exception:
+        profile = None
+
+    context = {
+        'user_obj': user,
+        'profile': profile,
+    }
+
+    return render(request, 'energy_tracker/account.html', context)
+
+
+
+@login_required
+def change_password_view(request):
+    """Allow users to change their password from the account area."""
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Important: update session hash so the user isn't logged out
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Your password was changed successfully.')
+            return redirect('account')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = PasswordChangeForm(request.user)
+
+    return render(request, 'energy_tracker/change_password.html', {'form': form})

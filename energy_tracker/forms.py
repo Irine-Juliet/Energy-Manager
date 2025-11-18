@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from .models import Activity
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django import forms
+from .models import UserProfile
 
 
 class SignUpForm(UserCreationForm):
@@ -99,3 +101,19 @@ class ActivityForm(forms.ModelForm):
             raise ValidationError({'energy_level': 'Invalid energy value.'})
 
         return cleaned
+
+
+
+class SettingsForm(forms.ModelForm):
+    """Form for user settings: theme and notifications."""
+    class Meta:
+        model = UserProfile
+        fields = ['theme', 'notifications']
+        widgets = {
+            'theme': forms.RadioSelect(choices=UserProfile.THEME_CHOICES),
+            'notifications': forms.CheckboxInput(),
+        }
+        labels = {
+            'theme': 'Theme',
+            'notifications': 'Notifications',
+        }
