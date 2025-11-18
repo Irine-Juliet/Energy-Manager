@@ -1,74 +1,41 @@
-<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Energy Dashboard</title>
-    
-    <!-- 1. Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 2. Chart.js (Core Library) -->
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Energy Manager{% endblock %}
+
+{% block extra_head %}
+    <!-- Chart.js v4 and date adapter (needed for time scale) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    
-    <!-- 3. Chart.js Date Adapter (for the 24-hour X-axis) -->
     <script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    
     <style>
         /* Custom scrollbar for insights panel */
-        .insights-panel::-webkit-scrollbar {
-            width: 6px;
-        }
-        .insights-panel::-webkit-scrollbar-track {
-            background: #1f2937; /* gray-800 */
-        }
-        .insights-panel::-webkit-scrollbar-thumb {
-            background: #4b5563; /* gray-600 */
-            border-radius: 3px;
-        }
-        .insights-panel::-webkit-scrollbar-thumb:hover {
-            background: #6b7280; /* gray-500 */
-        }
+        .insights-panel::-webkit-scrollbar { width: 6px; }
+        .insights-panel::-webkit-scrollbar-track { background: #f3f4f6; }
+        .insights-panel::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 3px; }
+        .insights-panel::-webkit-scrollbar-thumb:hover { background: #6b7280; }
     </style>
-</head>
-<body class="bg-gray-900 text-gray-200 font-sans antialiased">
+{% endblock %}
 
-    <!-- Main Navigation Bar -->
-    <nav class="bg-gray-800 shadow-lg sticky top-0 z-50">
-        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-white">Energy Dashboard</h1>
-            <div class="flex space-x-4">
-                <a href="#" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">Log Activity</a>
-                <a href="#" class="text-white bg-blue-600 px-3 py-2 rounded-md font-medium">Dashboard</a>
-            </div>
-        </div>
-    </nav>
-
+{% block content %}
     <!-- Main Content Area -->
-    <main class="container mx-auto p-4 md:p-8">
+    <div class="bg-gray-50 rounded-lg shadow-sm p-6">
 
         <!-- Top Row: Line Graph & Current Status -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
             <!-- Element 1: Smooth Line Graph -->
-            <div class="lg:col-span-2 bg-gray-800 p-6 rounded-xl shadow-2xl">
-                <h2 class="text-xl font-semibold mb-4 text-white">Today's Energy Flow</h2>
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Today's Energy Flow</h2>
                 <div class="h-80 md:h-96">
                     <canvas id="energyOverTimeChart"></canvas>
                 </div>
             </div>
 
             <!-- Element 2: Current Energy Level -->
-            <div class="bg-gray-800 p-6 rounded-xl shadow-2xl flex flex-col items-center justify-center h-full min-h-[200px] lg:min-h-0">
-                <h2 class="text-xl font-semibold mb-4 text-white">Current Status</h2>
+            <div class="bg-white p-6 rounded-xl shadow flex flex-col items-center justify-center h-full min-h-[200px] lg:min-h-0">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Current Status</h2>
                 <!-- This content will be populated by JavaScript -->
                 <div id="currentEnergyStatus" class="flex flex-col items-center justify-center text-center">
-                    <!-- Loading state -->
-                    <svg class="w-16 h-16 animate-spin text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
                     <p class="mt-4 text-xl font-medium text-gray-500">Calculating...</p>
                 </div>
             </div>
@@ -78,16 +45,16 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <!-- Element 3: Bar Chart -->
-            <div class="lg:col-span-2 bg-gray-800 p-6 rounded-xl shadow-2xl">
-                <h2 class="text-xl font-semibold mb-4 text-white">Time per Energy State</h2>
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Time per Energy State</h2>
                 <div class="h-96">
                     <canvas id="hoursPerCategoryChart"></canvas>
                 </div>
             </div>
 
             <!-- Insights Panel (controlled by bar chart hover) -->
-            <div class="bg-gray-800 p-6 rounded-xl shadow-2xl">
-                <h2 class="text-xl font-semibold mb-4 text-white">Insights</h2>
+            <div class="bg-white p-6 rounded-xl shadow">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Insights</h2>
                 <!-- This content will be populated by JavaScript on hover -->
                 <div id="insightsPanel" class="insights-panel h-96 overflow-y-auto">
                     <div class="flex flex-col items-center justify-center h-full text-gray-500">
@@ -100,182 +67,72 @@
             </div>
         </div>
 
-    </main>
+    </div>
+{% endblock %}
 
-    <script type="module">
-        // --- MOCK DATA --------------------------------------------------------
-        // This is your "Activity Log" data.
-        // In a real app, you'd fetch this from your database.
-        const mockActivityLog = [
-            { id: 1, name: "Morning Scrum", startTime: "2025-11-15T09:00:00", duration: 1, energy: -1 },
-            { id: 2, name: "Debugging Legacy Code", startTime: "2025-11-15T10:00:00", duration: 2, energy: 0 },
-            { id: 3, name: "Lunch Walk", startTime: "2025-11-15T12:00:00", duration: 0.5, energy: 1 },
-            { id: 4, name: "Designing New Feature", startTime: "2025-11-15T13:00:00", duration: 3, energy: 2 },
-            { id: 5, name: "Client Call", startTime: "2025-11-15T16:00:00", duration: 1, energy: -1 },
-            { id: 6, name: "Team Sync", startTime: "2025-11-15T17:00:00", duration: 0.5, energy: 0 },
-        ];
-        
-        // --- CONSTANTS & HELPERS ----------------------------------------------
-        
+{% block extra_js %}
+    <script>
+        // Injected data from server
+        const activityLog = {{ activity_points|safe }} || [];
+        const hourlyAvg = {{ hourly_avg|safe }} || Array(24).fill(null);
+        const hoursPerCategory = {{ hours_per_category|safe }} || {'-1':0,'0':0,'1':0,'2':0};
+
         const ENERGY_LEVELS = {
-            '-1': { label: 'Draining', color: 'rgba(239, 68, 68, 0.7)', icon: 'icon-drained' },
-             '0': { label: 'Neutral', color: 'rgba(107, 114, 128, 0.7)', icon: 'icon-neutral' },
-             '1': { label: 'Energizing', color: 'rgba(34, 197, 94, 0.7)', icon: 'icon-energized' },
-             '2': { label: 'Flow State', color: 'rgba(59, 130, 246, 0.7)', icon: 'icon-flow' },
+            '-1': { label: 'Draining', color: 'rgba(239, 68, 68, 0.7)', emoji: '🪫' },
+            '0': { label: 'Neutral', color: 'rgba(107, 114, 128, 0.7)', emoji: '😶' },
+            '1': { label: 'Energizing', color: 'rgba(34, 197, 94, 0.7)', emoji: '😃' },
+            '2': { label: 'Flow State', color: 'rgba(59, 130, 246, 0.7)', emoji: '🤩' },
         };
-        
-        // --- SVGs for Status Icons ---
-        const iconDrained = `
-            <svg class="w-20 h-20 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.182 16.318A4.5 4.5 0 0012 15a4.5 4.5 0 00-3.182 1.318M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 9.75h.008v.008H9V9.75zm0 3.75h.008v.008H9v-.008zm6-3.75h.008v.008H15V9.75zm0 3.75h.008v.008H15v-.008z" />
-            </svg>`;
-        const iconNeutral = `
-            <svg class="w-20 h-20 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 12h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zM21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 9.75h.008v.008H9V9.75zm0 3.75h.008v.008H9v-.008zm6-3.75h.008v.008H15V9.75zm0 3.75h.008v.008H15v-.008z" />
-            </svg>`;
-        const iconEnergized = `
-            <svg class="w-20 h-20 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 9.75h.008v.008H9V9.75zm0 3.75h.008v.008H9v-.008zm6-3.75h.008v.008H15V9.75zm0 3.75h.008v.008H15v-.008z" />
-            </svg>`;
-        const iconFlow = `
-            <svg class="w-20 h-20 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A9.005 9.005 0 0112 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-1.631-.44-3.15-1.2-4.438M12 12h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zM9.75 15h.008v.008H9.75V15zm0-3h.008v.008H9.75v-.008zm3 0h.008v.008H12.75v-.008zm3 0h.008v.008H15.75v-.008zm-3-3h.008v.008H12.75V9zm3 0h.008v.008H15.75V9z" />
-            </svg>`;
 
-        // --- CHART.JS GLOBAL CONFIG -------------------------------------------
-        Chart.defaults.color = '#e5e7eb'; // text-gray-200
-        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+        const iconDrained = `<svg class="w-20 h-20 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 16.318A4.5 4.5 0 0012 15a4.5 4.5 0 00-3.182 1.318M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 9.75h.008v.008H9V9.75zm0 3.75h.008v.008H9v-.008zm6-3.75h.008v.008H15V9.75zm0 3.75h.008v.008H15v-.008z" /></svg>`;
+        const iconNeutral = `<svg class="w-20 h-20 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 12h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zM21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 9.75h.008v.008H9V9.75zm0 3.75h.008v.008H9v-.008zm6-3.75h.008v.008H15V9.75zm0 3.75h.008v.008H15v-.008z" /></svg>`;
+        const iconEnergized = `<svg class="w-20 h-20 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 9.75h.008v.008H9V9.75zm0 3.75h.008v.008H9v-.008zm6-3.75h.008v.008H15V9.75zm0 3.75h.008v.008H15v-.008z" /></svg>`;
+        const iconFlow = `<svg class="w-20 h-20 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A9.005 9.005 0 0112 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-1.631-.44-3.15-1.2-4.438M12 12h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zm0 0h.008v.008H12V12zM9.75 15h.008v.008H9.75V15zm0-3h.008v.008H9.75v-.008zm3 0h.008v.008H12.75v-.008zm3 0h.008v.008H15.75v-.008zm-3-3h.008v.008H12.75V9zm3 0h.008v.008H15.75V9z" /></svg>`;
 
-        // --- Wait for DOM to load ---------------------------------------------
+        Chart.defaults.color = '#111827';
+
         document.addEventListener('DOMContentLoaded', () => {
-            // Get chart canvases
             const ctxLine = document.getElementById('energyOverTimeChart')?.getContext('2d');
             const ctxBar = document.getElementById('hoursPerCategoryChart')?.getContext('2d');
-            
-            // Get DOM elements
             const statusEl = document.getElementById('currentEnergyStatus');
             const insightsEl = document.getElementById('insightsPanel');
 
-            if (!ctxLine || !ctxBar || !statusEl || !insightsEl) {
-                console.error("Could not find all required DOM elements.");
-                return;
-            }
+            if (!ctxLine || !ctxBar || !statusEl || !insightsEl) return;
 
-            // --- 1. Process & Render Line Chart ---
-            const lineChartData = mockActivityLog.map(entry => ({
-                x: new Date(entry.startTime).getTime(),
-                y: entry.energy
-            })).sort((a, b) => a.x - b.x); // Sort by time
+            const lineData = activityLog.map(e => ({ x: new Date(e.startTime).getTime(), y: e.energy })).sort((a,b)=>a.x-b.x);
 
             new Chart(ctxLine, {
                 type: 'line',
-                data: {
-                    datasets: [{
-                        label: 'Energy Level',
-                        data: lineChartData,
-                        borderColor: '#3b82f6', // blue-500
-                        backgroundColor: 'rgba(59, 130, 246, 0.3)',
-                        fill: true,
-                        tension: 0.4, // This makes the line smooth
-                        pointRadius: 6,
-                        pointHoverRadius: 8,
-                    }]
-                },
+                data: { datasets: [{ label: 'Energy Level', data: lineData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)', fill:true, tension:0.4, pointRadius:5 }]},
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    responsive:true, maintainAspectRatio:false,
                     scales: {
-                        x: {
-                            type: 'time',
-                            time: {
-                                unit: 'hour',
-                                tooltipFormat: 'HH:mm', // e.g., 14:30
-                                displayFormats: {
-                                    hour: 'HH:00' // e.g., 14:00
-                                }
-                            },
-                            title: {
-                                display: true,
-                                text: 'Time of Day'
-                            },
-                            // Set min/max to today's midnight
-                            min: new Date(new Date().setHours(0, 0, 0, 0)).getTime(),
-                            max: new Date(new Date().setHours(23, 59, 59, 999)).getTime(),
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        },
-                        y: {
-                            min: -1.5,
-                            max: 2.5,
-                            title: {
-                                display: true,
-                                text: 'Energy State'
-                            },
-                            ticks: {
-                                stepSize: 1,
-                                callback: function(value) {
-                                    return ENERGY_LEVELS[value]?.label || '';
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
+                        x: { type: 'time', time: { unit: 'hour', displayFormats:{hour:'HH:00'}, tooltipFormat:'HH:mm' }, min: new Date().setHours(0,0,0,0), max: new Date().setHours(23,59,59,999) },
+                        y: { min:-2.5, max:2.5, ticks:{ stepSize:1, callback: v => { const map={ '-1': `${ENERGY_LEVELS['-1'].emoji} ${ENERGY_LEVELS['-1'].label}`, '0': `${ENERGY_LEVELS['0'].emoji} ${ENERGY_LEVELS['0'].label}`, '1': `${ENERGY_LEVELS['1'].emoji} ${ENERGY_LEVELS['1'].label}`, '2': `${ENERGY_LEVELS['2'].emoji} ${ENERGY_LEVELS['2'].label}` }; return map.hasOwnProperty(v)?map[v]:'' } } }
                     }
                 }
             });
 
-            // --- 2. Process & Render Current Energy Status ---
-            let totalEnergyPoints = 0;
-            let totalHours = 0;
-            mockActivityLog.forEach(entry => {
-                totalEnergyPoints += entry.energy * entry.duration;
-                totalHours += entry.duration;
-            });
-            
-            const weightedAverage = totalHours > 0 ? totalEnergyPoints / totalHours : 0;
-            
-            let statusIcon, statusText, statusColor;
-            if (weightedAverage > 1.25) { // High threshold for Flow
-                statusIcon = iconFlow;
-                statusText = "In the Flow!";
-                statusColor = "text-blue-500";
-            } else if (weightedAverage > 0.25) { // Positive threshold for Energized
-                statusIcon = iconEnergized;
-                statusText = "Feeling Energized";
-                statusColor = "text-green-500";
-            } else if (weightedAverage < -0.25) { // Negative threshold for Drained
-                statusIcon = iconDrained;
-                statusText = "Feeling Drained";
-                statusColor = "text-red-500";
-            } else {
-                statusIcon = iconNeutral;
-                statusText = "Feeling Neutral";
-                statusColor = "text-gray-400";
-            }
-            
-            statusEl.innerHTML = `
-                ${statusIcon}
-                <p class="mt-4 text-2xl font-semibold ${statusColor}">${statusText}</p>
-                <p class="text-sm text-gray-500 mt-1">Weighted Avg: ${weightedAverage.toFixed(2)}</p>
-            `;
+            // Current status using server avg
+            const serverAvg = Number({{ today_avg|default:0 }});
+            let icon = iconNeutral, text = 'Feeling Neutral', colorClass='text-gray-500';
+            if (serverAvg > 1.25) { icon=iconFlow; text='In the Flow!'; colorClass='text-blue-500'; }
+            else if (serverAvg > 0.25) { icon=iconEnergized; text='Feeling Energized'; colorClass='text-green-500'; }
+            else if (serverAvg < -0.25) { icon=iconDrained; text='Feeling Drained'; colorClass='text-red-500'; }
+            statusEl.innerHTML = `${icon}<p class="mt-4 text-2xl font-semibold ${colorClass}">${text}</p><p class="text-sm text-gray-500 mt-1">Average: ${serverAvg.toFixed(2)}</p>`;
 
+            // Bar chart
+            const labels = Object.values(ENERGY_LEVELS).map(v=>v.label);
+            const data = Object.keys(hoursPerCategory).map(k=>hoursPerCategory[k]);
+            const colors = Object.values(ENERGY_LEVELS).map(v=>v.color);
 
-            // --- 3. Process & Render Bar Chart ---
-            const categoryTotals = { '-1': 0, '0': 0, '1': 0, '2': 0 };
-            mockActivityLog.forEach(entry => {
-                categoryTotals[entry.energy] += entry.duration;
-            });
+            const bar = new Chart(ctxBar, { type:'bar', data:{ labels, datasets:[{ data, backgroundColor:colors }]}, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}}, onHover:(evt, elems)=>{ const canvas=evt.native.target; if (elems.length){ canvas.style.cursor='pointer'; const idx=elems[0].index; updateInsights(Object.keys(hoursPerCategory)[idx], data[idx]); } else { canvas.style.cursor='default'; clearInsights(); } }, onClick:(evt, elems)=>{ if (elems.length){ const idx=elems[0].index; updateInsights(Object.keys(hoursPerCategory)[idx], data[idx]); } } } });
 
-            const barChartLabels = Object.values(ENERGY_LEVELS).map(v => v.label);
-            const barChartData = Object.keys(categoryTotals).map(key => categoryTotals[key]);
-            const barChartColors = Object.values(ENERGY_LEVELS).map(v => v.color);
+            function updateInsights(key, hours){ const info=ENERGY_LEVELS[key]; const acts = activityLog.filter(a=>String(a.energy)===String(key)).map(a=>`<li class=\"py-2 px-3 bg-gray-100 rounded-lg mb-2\"><span class=\"font-medium\">${a.name}</span> <span class=\"text-sm text-gray-500\"> (${new Date(a.startTime).toLocaleTimeString()} )</span></li>`).join(''); insightsEl.innerHTML = `<h3 class=\"text-2xl font-bold mb-4\" style=\"color:${info.color}\">${info.label}</h3><p class=\"text-4xl font-light mb-6\">${hours} <span class=\"text-lg\">hours logged</span></p><h4 class=\"text-lg font-semibold mb-3 text-gray-800\">Logged Activities</h4><ul class=\"space-y-2\">${acts.length?acts:'<li class=\"text-gray-500\">No activities logged for this state.</li>'}</ul>`; }
+            function clearInsights(){ insightsEl.innerHTML = `<div class=\"flex flex-col items-center justify-center h-full text-gray-500\"><svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" class=\"w-12 h-12 mb-4\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M15.042 21.672L13.684 16.6m0 0l-2.5-2.5m2.5 2.5l-2.5-2.5M13.684 16.6l-2.5-2.5m2.5 2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5M15.042 21.672L13.684 16.6M11.958 8.672L10.5 3.6m0 0l-2.5 2.5m2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5M11.958 8.672L10.5 3.6m2.5 2.5l2.5 2.5m-2.5-2.5l-2.5 2.5m2.5-2.5l2.5 2.5m-2.5-2.5l-2.5 2.5\" /></svg><p class=\"text-center\">Hover over the bar chart<br>to see details.</p></div>`; }
+        });
+    </script>
+{% endblock %}
 
             let currentHoverIndex = null; // To track hover state
 
