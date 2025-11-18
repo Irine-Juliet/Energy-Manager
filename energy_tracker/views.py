@@ -158,18 +158,19 @@ def dashboard_view(request):
 
     # Count how many hours (distinct hour slots) fall into each category.
     # We treat a slot with at least one activity as 1 "hour" for this summary.
-    hours_per_category = {'-1': 0, '0': 0, '1': 0, '2': 0}
+    # Bucket each hourly average into the nearest category among [-2, -1, 0, 1, 2].
+    hours_per_category = {'-2': 0, '-1': 0, '0': 0, '1': 0, '2': 0}
+    categories = [-2, -1, 0, 1, 2]
     for avg in hourly_avg:
         if avg is None:
             continue
-        if avg < 0:
-            hours_per_category['-1'] += 1
-        elif avg == 0:
+        # Find the nearest category by absolute distance
+        try:
+            nearest = min(categories, key=lambda c: abs(avg - c))
+            hours_per_category[str(int(nearest))] += 1
+        except Exception:
+            # Fallback: treat as neutral if something unexpected occurs
             hours_per_category['0'] += 1
-        elif 0 < avg < 2:
-            hours_per_category['1'] += 1
-        else:
-            hours_per_category['2'] += 1
 
     context = {
         'today_count': today_count,
