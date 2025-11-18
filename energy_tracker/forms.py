@@ -41,61 +41,89 @@ class SignUpForm(UserCreationForm):
 
 class ActivityForm(forms.ModelForm):
     """Form for logging activities"""
-    activity_date = forms.DateTimeField(
-        widget=forms.DateTimeInput(attrs={
-            'type': 'datetime-local',
-            'class': 'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
-        }),
-        required=False,
-        help_text='Leave blank to use current time'
+    duration_hours = forms.IntegerField(
+        min_value=0,
+        max_value=24,
+        initial=0,
+        required=True,
+        widget=forms.NumberInput(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+            'id': 'durationHours'
+        })
+    )
+    duration_minutes = forms.IntegerField(
+        min_value=0,
+        max_value=59,
+        initial=0,
+        required=True,
+        widget=forms.NumberInput(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+            'id': 'durationMinutes'
+        })
     )
     
     class Meta:
         model = Activity
-        fields = ['name', 'description', 'energy_level', 'activity_date']
+        fields = ['name', 'energy_level', 'activity_date']
         widgets = {
             'name': forms.TextInput(attrs={
-                'class': 'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm',
-                'placeholder': 'e.g., Team Meeting'
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition',
+                'placeholder': 'e.g., Team Meeting, Exercise, Coding',
+                'maxlength': '100',
+                'autocomplete': 'off',
+                'id': 'activityName'
             }),
-            'description': forms.Textarea(attrs={
-                'rows': 3,
-                'class': 'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm',
-                'placeholder': 'Optional: Add details about this activity'
+            'energy_level': forms.HiddenInput(attrs={
+                'id': 'energy_level'
             }),
-            'energy_level': forms.RadioSelect(),
+            'activity_date': forms.HiddenInput(attrs={
+                'id': 'activity_date'
+            }),
         }
         labels = {
             'name': 'Activity Name',
-            'description': 'Description (optional)',
-            'energy_level': 'How did this make you feel?',
-            'activity_date': 'When did this happen?',
+            'energy_level': 'Energy Impact',
         }
 
-    def clean(self):
-        """Form-level validation: no future activity_date, name required, energy range check."""
-        cleaned = super().clean()
-        activity_date = cleaned.get('activity_date')
-        name = cleaned.get('name')
-        energy = cleaned.get('energy_level')
-
-        # Name required (Model has no blank restriction beyond CharField, keep explicit)
+    def clean_name(self):
+        """Validate activity name"""
+        name = self.cleaned_data.get('name', '').strip()
         if not name:
-            raise ValidationError({'name': 'Please enter an activity name.'})
+            raise ValidationError('Activity name is required.')
+        if len(name) > 100:
+            raise ValidationError('Activity name cannot exceed 100 characters.')
+        return name
 
-        # If a date was provided, ensure it's not in the future
+    def clean_activity_date(self):
+        """Ensure activity date is not in the future"""
+        activity_date = self.cleaned_data.get('activity_date')
         if activity_date:
-            # make aware if naive and USE_TZ is enabled
-            try:
-                now = timezone.now()
-                if activity_date > now:
-                    raise ValidationError({'activity_date': 'Activity date cannot be in the future.'})
-            except TypeError:
-                # In case of unexpected types, let field-level validators handle it
-                pass
+            now = timezone.now()
+            if activity_date > now:
+                raise ValidationError('Cannot log activities in the future.')
+        return activity_date
 
-        # Energy level must be in allowed range
-        if energy is None or not (-2 <= int(energy) <= 2):
-            raise ValidationError({'energy_level': 'Invalid energy value.'})
-
+    def clean(self):
+        """Form-level validation: duration validation"""
+        cleaned = super().clean()
+        duration_hours = cleaned.get('duration_hours', 0)
+        duration_minutes = cleaned.get('duration_minutes', 0)
+        
+        # Calculate total duration in minutes
+        if duration_hours is None:
+            duration_hours = 0
+        if duration_minutes is None:
+            duration_minutes = 0
+            
+        total_duration = duration_hours * 60 + duration_minutes
+        
+        # Validate duration range
+        if total_duration < 1:
+            raise ValidationError('Activity must be at least 1 minute.')
+        if total_duration > 1440:
+            raise ValidationError('Activity cannot exceed 24 hours.')
+        
+        # Store calculated duration for use in view
+        cleaned['duration'] = total_duration
+        
         return cleaned

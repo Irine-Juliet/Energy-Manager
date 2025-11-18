@@ -2,6 +2,7 @@ services:
   - type: web
     name: energy-manager
     runtime: python
+    plan: free
     buildCommand: "./build.sh"
     startCommand: "gunicorn energy_manager.wsgi:application"
     envVars:
@@ -18,5 +19,6 @@ services:
 
 databases:
   - name: energy-manager-db
+    plan: free
     databaseName: energy_manager
     user: energy_manager
