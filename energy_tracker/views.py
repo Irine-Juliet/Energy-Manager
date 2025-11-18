@@ -15,12 +15,16 @@ from .forms import SignUpForm, ActivityForm
 @login_required
 def homepage_view(request):
     """Homepage showing today's energy level, recent activities, and quick log button"""
-    today = timezone.now().date()
+    # Get the start and end of today in the current timezone
+    now = timezone.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
     
     # Get today's activities
     today_activities = Activity.objects.filter(
         user=request.user,
-        activity_date__date=today
+        activity_date__gte=today_start,
+        activity_date__lte=today_end
     )
     
     # Calculate today's average energy level
