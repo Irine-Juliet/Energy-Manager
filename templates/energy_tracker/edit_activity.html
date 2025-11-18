@@ -197,9 +197,33 @@
   min-height: 140px;
 }
 
+/* Selected state - make it very obvious */
 .energy-btn.selected .energy-btn-inner {
-  border-width: 3px;
-  transform: scale(1.05);
+  border-width: 4px !important;
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-weight: bold;
+}
+
+/* Color-specific selected states for stronger visual feedback */
+.energy-btn.selected[data-value="-2"] .energy-btn-inner {
+  border-color: #991b1b !important;
+  background-color: #fecaca !important;
+}
+
+.energy-btn.selected[data-value="-1"] .energy-btn-inner {
+  border-color: #c2410c !important;
+  background-color: #fed7aa !important;
+}
+
+.energy-btn.selected[data-value="1"] .energy-btn-inner {
+  border-color: #15803d !important;
+  background-color: #bbf7d0 !important;
+}
+
+.energy-btn.selected[data-value="2"] .energy-btn-inner {
+  border-color: #047857 !important;
+  background-color: #a7f3d0 !important;
 }
 </style>
 
