@@ -177,28 +177,47 @@ def activity_history_view(request):
     """View for displaying paginated activity history"""
     # Get filter parameters
     energy_filter = request.GET.get('energy', None)
-    
+    q = request.GET.get('q', '').strip()
+    view = request.GET.get('view', 'day')  # 'day' | 'week' | 'month'
+
     # Base queryset
     activities = Activity.objects.filter(user=request.user)
-    
-    # Apply filters
+
+    # Apply energy level filter if present
     if energy_filter:
         try:
             energy_filter = int(energy_filter)
             activities = activities.filter(energy_level=energy_filter)
         except ValueError:
-            pass
-    
+            energy_filter = None
+
+    # Apply time window filter based on view
+    now = timezone.now()
+    if view == 'day':
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif view == 'week':
+        start = now - timedelta(days=7)
+    else:  # month
+        start = now - timedelta(days=30)
+
+    activities = activities.filter(activity_date__gte=start)
+
+    # Apply search filter on name
+    if q:
+        activities = activities.filter(name__icontains=q)
+
     # Pagination
     paginator = Paginator(activities, 20)  # 20 activities per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     context = {
         'page_obj': page_obj,
         'energy_filter': energy_filter,
+        'q': q,
+        'view': view,
     }
-    
+
     return render(request, 'energy_tracker/activity_history.html', context)
 
 
