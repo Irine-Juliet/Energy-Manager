@@ -78,8 +78,8 @@
                     </div>
                     <div class="flex items-center space-x-4">
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                            {% if activity.energy_level >= 1 %}bg-green-100 text-green-800
-                            {% elif activity.energy_level == 0 %}bg-gray-100 text-gray-800
+                            {% if activity.energy_level > 0 %}bg-green-100 text-green-800
+                            {% elif activity.energy_level == -1 %}bg-orange-100 text-orange-800
                             {% else %}bg-red-100 text-red-800
                             {% endif %}">
                             {{ activity.get_energy_level_display }}

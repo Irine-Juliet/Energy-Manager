@@ -6,10 +6,12 @@ from django.db.models import Avg, Count
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 from datetime import timedelta
 import json
 from .models import Activity
 from .forms import SignUpForm, ActivityForm
+from .utils import get_canonical_activity_name
 
 
 @login_required
@@ -115,6 +117,7 @@ def dashboard_view(request):
     ).order_by('date')
     
     # Find top draining and energizing activities
+    # New scale: -2,-1 are draining, 1,2 are energizing
     draining_activities = Activity.objects.filter(
         user=request.user,
         energy_level__lt=0
@@ -152,24 +155,96 @@ def dashboard_view(request):
 
 @login_required
 def log_activity_view(request):
-    """View for logging a new activity"""
+    """View for logging a new activity with AJAX support"""
     if request.method == 'POST':
         form = ActivityForm(request.POST)
+        
+        # Check if it's an AJAX request
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
         if form.is_valid():
             activity = form.save(commit=False)
             activity.user = request.user
+            
+            # Normalize activity name (case-insensitive consolidation)
+            activity.name = get_canonical_activity_name(request.user, activity.name)
+            
+            # Set duration from form's calculated value
+            activity.duration = form.cleaned_data['duration']
             
             # Use current time if no date provided
             if not activity.activity_date:
                 activity.activity_date = timezone.now()
             
             activity.save()
+            
+            # Return JSON for AJAX requests
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'activity': {
+                        'name': activity.name,
+                        'duration': activity.get_duration_display(),
+                        'energy_level': activity.get_energy_level_display(),
+                        'energy_emoji': activity.get_energy_emoji(),
+                    }
+                })
+            
+            # Traditional form submission
             messages.success(request, f'Activity "{activity.name}" logged successfully!')
-            return redirect('homepage')
+            return redirect('log_activity')
+        else:
+            # Return errors for AJAX requests
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'errors': form.errors
+                }, status=400)
     else:
         form = ActivityForm()
     
     return render(request, 'energy_tracker/log_activity.html', {'form': form})
+
+
+@login_required
+def autocomplete_activities_view(request):
+    """
+    API endpoint for activity name autocomplete.
+    Returns top 5 most frequent activities matching the search term.
+    """
+    search_term = request.GET.get('q', '').strip()
+    
+    if not search_term:
+        return JsonResponse({'suggestions': []})
+    
+    # Get all activities matching the search term (case-insensitive)
+    matching_activities = Activity.objects.filter(
+        user=request.user,
+        name__icontains=search_term
+    ).values('name').annotate(
+        count=Count('name')
+    ).order_by('-count', 'name')[:5]
+    
+    # Get top 5 most frequent activities overall for is_top_5 flag
+    top_5_overall = Activity.objects.filter(
+        user=request.user
+    ).values('name').annotate(
+        count=Count('name')
+    ).order_by('-count')[:5]
+    
+    top_5_names = {item['name'].lower() for item in top_5_overall}
+    
+    # Format suggestions
+    suggestions = [
+        {
+            'name': item['name'],
+            'count': item['count'],
+            'is_top_5': item['name'].lower() in top_5_names
+        }
+        for item in matching_activities
+    ]
+    
+    return JsonResponse({'suggestions': suggestions})
 
 
 @login_required
