@@ -22,7 +22,7 @@
       </div>
       
       <!-- Form Section -->
-      <form method="post" id="editActivityForm" class="px-8 py-6 space-y-6">
+      <form method="post" id="editActivityForm" class="px-8 py-6 space-y-6" data-energy-level="{{ activity.energy_level }}">
         {% csrf_token %}
         
         <!-- Activity Name -->
@@ -215,8 +215,8 @@
   const energyButtons = document.querySelectorAll('.energy-btn');
   const energyLevelInput = document.getElementById('energy_level');
   
-  // Initialize: set current energy level from activity
-  let selectedEnergyLevel = {{ activity.energy_level }};
+  // Initialize: set current energy level from activity (read from data attribute)
+  let selectedEnergyLevel = parseInt(form.dataset.energyLevel);
   energyLevelInput.value = selectedEnergyLevel;
   
   // Update hidden datetime field when date or time changes
