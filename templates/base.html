@@ -32,14 +32,33 @@
             })();
         </script>
         <style>
-            /* Make common Tailwind gray text utilities readable in dark mode */
+            /* App-wide text color variable (defaults to dark) */
+            :root { --app-text: #0f172a; }
+            body { color: var(--app-text); }
+
+            /* Dark theme: default app text becomes light */
+            body.bg-gray-900 { --app-text: #f8fafc; }
+
+            /* Make common Tailwind gray utilities readable in dark mode */
             body.bg-gray-900 .text-gray-900 { color: #f8fafc !important; }
             body.bg-gray-900 .text-gray-800 { color: #f1f5f9 !important; }
             body.bg-gray-900 .text-gray-700 { color: #e2e8f0 !important; }
             body.bg-gray-900 .text-gray-600 { color: #cbd5e1 !important; }
             body.bg-gray-900 .text-gray-500 { color: #9ca3af !important; }
             body.bg-gray-900 .text-gray-400 { color: #94a3b8 !important; }
-            body.bg-gray-900 .text-gray-300 { color: #cbd5e1 !important; }
+
+            /* Inside white cards/containers we want dark text so override there */
+            body.bg-gray-900 .bg-white .text-gray-900,
+            body.bg-gray-900 .bg-white .text-gray-800,
+            body.bg-gray-900 .bg-white .text-gray-700,
+            body.bg-gray-900 .bg-white .text-gray-600,
+            body.bg-gray-900 .bg-white .text-gray-500,
+            body.bg-gray-900 .bg-white .text-gray-400 {
+                color: #0f172a !important;
+            }
+
+            /* Ensure elements inside white backgrounds inherit dark text */
+            body.bg-gray-900 .bg-white, body.bg-gray-900 .bg-white * { color: #0f172a !important; }
         </style>
     {% if user.is_authenticated %}
     <!-- Navigation -->
