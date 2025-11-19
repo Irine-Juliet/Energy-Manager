@@ -35,41 +35,64 @@
                     </form>
                 </div>
 
-                <!-- Summary -->
-                <p class="text-sm text-gray-600">Showing activities for: <strong>{{ view|capfirst }}</strong></p>
+                <!-- Summary and Bulk Actions -->
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-gray-600">Showing activities for: <strong>{{ view|capfirst }}</strong></p>
+                    <div id="bulkDeleteContainer" class="hidden">
+                        <button type="button" id="bulkDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">
+                            Delete Selected (<span id="selectedCount">0</span>)
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="bg-white rounded-lg shadow p-4">
                 {% if page_obj.object_list %}
-                    <ul class="space-y-3">
-                        {% for activity in page_obj.object_list %}
-                            <li class="border rounded p-3">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h3 class="text-lg font-semibold">{{ activity.name }}</h3>
-                                        <p class="text-sm text-gray-600">{{ activity.get_energy_level_display }} • {{ activity.activity_date|date:"M d, Y H:i" }}</p>
-                                        {% if activity.description %}
-                                            <p class="mt-2 text-gray-700">{{ activity.description|linebreaksbr }}</p>
-                                        {% endif %}
-                                    </div>
-                                    <div class="text-right text-sm text-gray-600">
-                                        <p>Recorded: {{ activity.created_at|date:"M d, Y H:i" }}</p>
-                                        <div class="mt-2">
-                                            <a href="{% url 'edit_activity' activity.pk %}" class="text-blue-600 mr-2">Edit</a>
-                                            <a href="{% url 'delete_activity' activity.pk %}" class="text-red-600">Delete</a>
+                    <form id="bulkDeleteForm" method="POST" action="{% url 'bulk_delete_activities' %}">
+                        {% csrf_token %}
+                        <ul class="space-y-3">
+                            {% for activity in page_obj.object_list %}
+                                <li class="border rounded p-3 hover:bg-gray-50 transition">
+                                    <div class="flex items-start space-x-3">
+                                        <!-- Checkbox for bulk selection -->
+                                        <div class="flex-shrink-0 pt-1">
+                                            <input 
+                                                type="checkbox" 
+                                                name="activity_ids" 
+                                                value="{{ activity.pk }}" 
+                                                class="activity-checkbox w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                            />
+                                        </div>
+                                        
+                                        <!-- Activity content -->
+                                        <div class="flex-grow flex justify-between items-start">
+                                            <div>
+                                                <h3 class="text-lg font-semibold">{{ activity.name }}</h3>
+                                                <p class="text-sm text-gray-600">{{ activity.get_energy_level_display }} • {{ activity.activity_date|date:"M d, Y H:i" }}</p>
+                                                {% if activity.description %}
+                                                    <p class="mt-2 text-gray-700">{{ activity.description|linebreaksbr }}</p>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-right text-sm text-gray-600">
+                                                <p>Recorded: {{ activity.created_at|date:"M d, Y H:i" }}</p>
+                                                <div class="mt-2">
+                                                    <a href="{% url 'edit_activity' activity.pk %}" class="text-blue-600 mr-2 hover:underline">Edit</a>
+                                                    <a href="{% url 'delete_activity' activity.pk %}" class="text-red-600 hover:underline">Delete</a>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <!-- Extra fields: show any non-standard fields if present -->
-                                <div class="mt-3 text-sm text-gray-700">
-                                    {% comment %} Show updated_at if it differs from created_at {% endcomment %}
-                                    {% if activity.updated_at and activity.updated_at != activity.created_at %}
-                                        <div>Updated: {{ activity.updated_at|date:"M d, Y H:i" }}</div>
-                                    {% endif %}
-                                </div>
-                            </li>
-                        {% endfor %}
-                    </ul>
+                                    <!-- Extra fields: show any non-standard fields if present -->
+                                    <div class="mt-3 ml-8 text-sm text-gray-700">
+                                        {% comment %} Show updated_at if it differs from created_at {% endcomment %}
+                                        {% if activity.updated_at and activity.updated_at != activity.created_at %}
+                                            <div>Updated: {{ activity.updated_at|date:"M d, Y H:i" }}</div>
+                                        {% endif %}
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </form>
 
                     <!-- Pagination controls -->
                     <div class="mt-4 flex items-center justify-between">
@@ -89,4 +112,54 @@
                 {% endif %}
             </div>
         </div>
+
+        <script>
+            (function() {
+                'use strict';
+
+                const checkboxes = document.querySelectorAll('.activity-checkbox');
+                const bulkDeleteContainer = document.getElementById('bulkDeleteContainer');
+                const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+                const selectedCountSpan = document.getElementById('selectedCount');
+                const bulkDeleteForm = document.getElementById('bulkDeleteForm');
+
+                // Update bulk delete button visibility and count
+                function updateBulkDeleteButton() {
+                    const checkedBoxes = document.querySelectorAll('.activity-checkbox:checked');
+                    const count = checkedBoxes.length;
+                    
+                    if (count > 0) {
+                        bulkDeleteContainer.classList.remove('hidden');
+                        selectedCountSpan.textContent = count;
+                    } else {
+                        bulkDeleteContainer.classList.add('hidden');
+                    }
+                }
+
+                // Add event listeners to all checkboxes
+                checkboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', updateBulkDeleteButton);
+                });
+
+                // Handle bulk delete button click
+                if (bulkDeleteBtn) {
+                    bulkDeleteBtn.addEventListener('click', function() {
+                        const checkedBoxes = document.querySelectorAll('.activity-checkbox:checked');
+                        const count = checkedBoxes.length;
+                        
+                        if (count === 0) {
+                            return;
+                        }
+
+                        const confirmMessage = count === 1 
+                            ? 'Are you sure you want to delete this activity?' 
+                            : `Are you sure you want to delete ${count} activities?`;
+                        
+                        if (confirm(confirmMessage)) {
+                            bulkDeleteForm.submit();
+                        }
+                    });
+                }
+            })();
+        </script>
         {% endblock %}
