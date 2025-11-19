@@ -31,6 +31,16 @@
                 }
             })();
         </script>
+        <style>
+            /* Make common Tailwind gray text utilities readable in dark mode */
+            body.bg-gray-900 .text-gray-900 { color: #f8fafc !important; }
+            body.bg-gray-900 .text-gray-800 { color: #f1f5f9 !important; }
+            body.bg-gray-900 .text-gray-700 { color: #e2e8f0 !important; }
+            body.bg-gray-900 .text-gray-600 { color: #cbd5e1 !important; }
+            body.bg-gray-900 .text-gray-500 { color: #9ca3af !important; }
+            body.bg-gray-900 .text-gray-400 { color: #94a3b8 !important; }
+            body.bg-gray-900 .text-gray-300 { color: #cbd5e1 !important; }
+        </style>
     {% if user.is_authenticated %}
     <!-- Navigation -->
     <nav class="bg-white shadow-lg">
