@@ -371,6 +371,27 @@ def delete_activity_view(request, pk):
     return render(request, 'energy_tracker/delete_activity.html', {'activity': activity})
 
 
+@login_required
+def bulk_delete_activities_view(request):
+    """View for deleting multiple activities at once"""
+    if request.method == 'POST':
+        activity_ids = request.POST.getlist('activity_ids')
+        
+        if activity_ids:
+            # Filter activities that belong to the current user
+            activities = Activity.objects.filter(pk__in=activity_ids, user=request.user)
+            count = activities.count()
+            
+            if count > 0:
+                activities.delete()
+                messages.success(request, f'Successfully deleted {count} {"activity" if count == 1 else "activities"}!')
+            else:
+                messages.warning(request, 'No activities were selected or found.')
+        else:
+            messages.warning(request, 'No activities were selected.')
+    
+    return redirect('activity_history')
+
 
 @login_required
 def settings_view(request):
