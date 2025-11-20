@@ -68,6 +68,14 @@ class ActivityForm(forms.ModelForm):
         })
     )
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # If editing an existing activity, populate duration_hours and duration_minutes
+        if self.instance and self.instance.pk and hasattr(self.instance, 'duration'):
+            total_minutes = self.instance.duration
+            self.fields['duration_hours'].initial = total_minutes // 60
+            self.fields['duration_minutes'].initial = total_minutes % 60
+    
     class Meta:
         model = Activity
         fields = ['name', 'energy_level', 'activity_date']

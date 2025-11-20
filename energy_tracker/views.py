@@ -137,9 +137,44 @@ def dashboard_view(request):
         count=Count('id')
     ).order_by('-avg_energy')[:3]
     
+    # --- Build data for dashboard charts ---------------------------------
+    # Activity points (for line chart): include ISO timestamp and energy level
+    activity_points = [
+        {
+            'id': a.id,
+            'name': a.name,
+            'startTime': a.activity_date.isoformat(),
+            'energy': a.energy_level,
+        }
+        for a in today_activities
+    ]
+
+    # Hourly averages for 24 hours (None when no data for that hour)
+    hourly_avg = []
+    for hour in range(24):
+        q = today_activities.filter(activity_date__hour=hour)
+        avg_val = q.aggregate(Avg('energy_level'))['energy_level__avg']
+        hourly_avg.append(float(avg_val) if avg_val is not None else None)
+
+    # Count how many hours (distinct hour slots) fall into each category.
+    # We treat a slot with at least one activity as 1 "hour" for this summary.
+    # Bucket each hourly average into the nearest category among [-2, -1, 0, 1, 2].
+    hours_per_category = {'-2': 0, '-1': 0, '0': 0, '1': 0, '2': 0}
+    categories = [-2, -1, 0, 1, 2]
+    for avg in hourly_avg:
+        if avg is None:
+            continue
+        # Find the nearest category by absolute distance
+        try:
+            nearest = min(categories, key=lambda c: abs(avg - c))
+            hours_per_category[str(int(nearest))] += 1
+        except Exception:
+            # Fallback: treat as neutral if something unexpected occurs
+            hours_per_category['0'] += 1
+
     context = {
         'today_count': today_count,
-        'today_avg': round(today_avg, 1),
+        'today_avg': round(today_avg, 2),
         'weekly_data': json.dumps([
             {
                 'date': str(item['date']),
@@ -151,8 +186,11 @@ def dashboard_view(request):
         'draining_activities': draining_activities,
         'energizing_activities': energizing_activities,
         'recent_activities': today_activities[:5],
+        'activity_points': json.dumps(activity_points, default=str),
+        'hourly_avg': json.dumps(hourly_avg),
+        'hours_per_category': json.dumps(hours_per_category),
     }
-    
+
     return render(request, 'energy_tracker/dashboard.html', context)
 
 
@@ -307,7 +345,10 @@ def edit_activity_view(request, pk):
     if request.method == 'POST':
         form = ActivityForm(request.POST, instance=activity)
         if form.is_valid():
-            form.save()
+            updated_activity = form.save(commit=False)
+            # Set duration from form's calculated value
+            updated_activity.duration = form.cleaned_data['duration']
+            updated_activity.save()
             messages.success(request, 'Activity updated successfully!')
             return redirect('activity_history')
     else:
@@ -329,6 +370,27 @@ def delete_activity_view(request, pk):
     
     return render(request, 'energy_tracker/delete_activity.html', {'activity': activity})
 
+
+@login_required
+def bulk_delete_activities_view(request):
+    """View for deleting multiple activities at once"""
+    if request.method == 'POST':
+        activity_ids = request.POST.getlist('activity_ids')
+        
+        if activity_ids:
+            # Filter activities that belong to the current user
+            activities = Activity.objects.filter(pk__in=activity_ids, user=request.user)
+            count = activities.count()
+            
+            if count > 0:
+                activities.delete()
+                messages.success(request, f'Successfully deleted {count} {"activity" if count == 1 else "activities"}!')
+            else:
+                messages.warning(request, 'No activities were selected or found.')
+        else:
+            messages.warning(request, 'No activities were selected.')
+    
+    return redirect('activity_history')
 
 
 @login_required
