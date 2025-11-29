@@ -37,7 +37,7 @@ def get_canonical_activity_name(user, name_input):
         name__iexact=name_input
     ).values('name').annotate(
         count=Count('name')
-    ).order_by('-count', '-id')
+    ).order_by('-count')
     
     # Return the most common casing (first result due to ordering)
     if matching_activities.exists():

@@ -1,9 +1,11 @@
 [run]
-source = .
+source = energy_tracker
 omit = 
     */migrations/*
     */tests/*
     */test_*.py
+    */admin.py
+    */apps.py
     */__pycache__/*
     */venv/*
     */env/*
@@ -15,10 +17,13 @@ omit =
 exclude_lines =
     pragma: no cover
     def __repr__
+    def __str__
     raise AssertionError
     raise NotImplementedError
     if __name__ == .__main__.:
+    if TYPE_CHECKING:
     if settings.DEBUG
+    @abstractmethod
     pass
 
 show_missing = True
