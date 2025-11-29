@@ -6,10 +6,10 @@ from django.db import migrations, models
 def transform_energy_levels_forward(apps, schema_editor):
     """Transform energy levels from old scale (1,2,3,4) to new scale (-2,-1,1,2)"""
     Activity = apps.get_model('energy_tracker', 'Activity')
-    
+
     # Mapping: 1→-2, 2→-1, 3→1, 4→2
     mapping = {1: -2, 2: -1, 3: 1, 4: 2}
-    
+
     for activity in Activity.objects.all():
         if activity.energy_level in mapping:
             activity.energy_level = mapping[activity.energy_level]
@@ -19,10 +19,10 @@ def transform_energy_levels_forward(apps, schema_editor):
 def transform_energy_levels_reverse(apps, schema_editor):
     """Reverse transformation from new scale (-2,-1,1,2) back to old scale (1,2,3,4)"""
     Activity = apps.get_model('energy_tracker', 'Activity')
-    
+
     # Reverse mapping: -2→1, -1→2, 1→3, 2→4
     reverse_mapping = {-2: 1, -1: 2, 1: 3, 2: 4}
-    
+
     for activity in Activity.objects.all():
         if activity.energy_level in reverse_mapping:
             activity.energy_level = reverse_mapping[activity.energy_level]

@@ -11,7 +11,7 @@ def migrate_energy_levels(apps, schema_editor):
     Mapping: old_value + 3 = new_value (with 0 mapped to 2)
     """
     Activity = apps.get_model('energy_tracker', 'Activity')
-    
+
     # Mapping dictionary
     energy_mapping = {
         -2: 1,  # Very Draining
@@ -20,7 +20,7 @@ def migrate_energy_levels(apps, schema_editor):
         1: 3,   # Somewhat Energizing
         2: 4,   # Very Energizing
     }
-    
+
     for activity in Activity.objects.all():
         if activity.energy_level in energy_mapping:
             activity.energy_level = energy_mapping[activity.energy_level]
@@ -34,7 +34,7 @@ def reverse_migrate_energy_levels(apps, schema_editor):
     Old scale: -2, -1, 0, 1, 2
     """
     Activity = apps.get_model('energy_tracker', 'Activity')
-    
+
     # Reverse mapping
     reverse_mapping = {
         1: -2,  # Very Draining
@@ -42,7 +42,7 @@ def reverse_migrate_energy_levels(apps, schema_editor):
         3: 1,   # Somewhat Energizing
         4: 2,   # Very Energizing
     }
-    
+
     for activity in Activity.objects.all():
         if activity.energy_level in reverse_mapping:
             activity.energy_level = reverse_mapping[activity.energy_level]
