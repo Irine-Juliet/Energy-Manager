@@ -1,5 +1,7 @@
 # Energy Manager
 
+![CI Pipeline](https://github.com/Irine-Juliet/Energy-Manager/workflows/Django%20CI%20Pipeline/badge.svg)
+
 A personal energy tracker to help you identify draining and energizing activities.
 
 ## Tech Stack
@@ -103,3 +105,49 @@ The Activity History page shows ALL activities within the selected time window (
 - View complete activity history
 - Search and filter activities
 - Review activities that don't appear in the homepage's top 5
+
+## Development & Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+python manage.py test
+
+# Run with coverage
+coverage run --source='.' manage.py test
+coverage report
+
+# Run specific test suite
+python manage.py test energy_tracker.tests
+```
+
+### Code Quality
+
+```bash
+# Format code
+black .
+isort .
+
+# Check linting
+ruff check .
+flake8 .
+```
+
+### Continuous Integration
+
+This project uses GitHub Actions for automated testing and quality checks. Every push and pull request triggers:
+
+- **Code Quality**: Linting with Ruff, Black, isort, Flake8
+- **Security Scanning**: Vulnerability detection with Safety and pip-audit
+- **Django Checks**: System validation and deployment readiness
+- **Database Migrations**: Migration validity testing
+- **Test Suite**: Unit and integration tests across Python 3.10, 3.11, 3.12
+- **Code Coverage**: Coverage reporting with >80% target
+- **Static Files**: Static asset collection verification
+
+View CI status: [GitHub Actions](https://github.com/Irine-Juliet/Energy-Manager/actions)
+
+### Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines, coding standards, and workflow instructions.
