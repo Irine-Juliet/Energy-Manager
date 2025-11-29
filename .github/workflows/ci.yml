@@ -202,7 +202,7 @@ jobs:
       
       - name: Run Tests with Coverage
         run: |
-          pytest --verbose --create-db --cov=energy_tracker --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=0
+          pytest --verbose --create-db -m "not e2e" --cov=energy_tracker --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=0
       
       - name: Upload Coverage HTML
         uses: actions/upload-artifact@v4

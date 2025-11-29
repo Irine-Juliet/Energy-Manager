@@ -5,6 +5,7 @@ This bypasses the Python 3.14/Django template rendering compatibility issue.
 """
 import os
 import django
+import pytest
 
 # Setup Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'energy_manager.settings')
@@ -16,6 +17,7 @@ from datetime import timedelta
 from energy_tracker.models import Activity
 from django.db.models import Sum
 
+@pytest.mark.django_db
 def test_dashboard_hours_aggregation():
     """Test that the dashboard correctly aggregates activity durations"""
     
