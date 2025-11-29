@@ -2,9 +2,9 @@ name: Django CI Pipeline
 
 on:
   push:
-    branches: [ main, develop, 'feature/**', 'bugfix/**', 'bug-fix-for-history-and-log-activity', 'githubtest-development' ]
+    branches: [ main, develop, 'feature/**', 'bugfix/**', 'bug-fix-for-history-and-log-activity', 'githubtest-development', 'testing-refactor' ]
   pull_request:
-    branches: [ main, develop ]
+    # Run on all pull requests regardless of target branch
   workflow_dispatch:
 
 env:
