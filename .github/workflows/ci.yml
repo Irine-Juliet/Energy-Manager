@@ -190,7 +190,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install coverage pytest pytest-django
+          pip install -r requirements-dev.txt
       
       - name: Run Migrations
         run: python manage.py migrate --no-input
@@ -199,13 +199,11 @@ jobs:
       
       - name: Run Tests with Coverage
         run: |
-          coverage run --source='.' manage.py test --verbosity=2 --parallel=auto
-          coverage report --show-missing
-          coverage xml
-          coverage html
+          pytest --verbose --cov=energy_tracker --cov-report=term-missing --cov-report=html --cov-report=xml
         env:
           SECRET_KEY: ${{ env.SECRET_KEY }}
           TZ: ${{ env.TZ }}
+          DJANGO_SETTINGS_MODULE: energy_manager.settings
       
       - name: Upload Coverage HTML
         uses: actions/upload-artifact@v4
