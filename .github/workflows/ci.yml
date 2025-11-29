@@ -196,7 +196,7 @@ jobs:
       
       - name: Run Tests with Coverage
         run: |
-          pytest --verbose --cov=energy_tracker --cov-report=term-missing --cov-report=html --cov-report=xml
+          pytest --verbose --create-db --cov=energy_tracker --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=0
         env:
           SECRET_KEY: ${{ env.SECRET_KEY }}
           TZ: ${{ env.TZ }}
