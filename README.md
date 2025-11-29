@@ -78,3 +78,28 @@ http://localhost:8000
 - ✅ Weekly energy trend visualization
 - ✅ Activity history with pagination
 - ✅ Edit/delete activities
+
+## Activity Ordering and Display Logic
+
+All activity lists are ordered by `activity_date` (when the activity occurred), not by `created_at` (when it was logged). This allows users to:
+
+- Log activities retrospectively (e.g., log breakfast at noon)
+- Maintain chronological accuracy
+- See activities in the order they actually happened
+
+### Homepage Display Rules
+
+The homepage shows **up to 5 most recent activities** from today:
+- Sorted by `activity_date` descending (most recent first)
+- Limited to 5 items to keep the homepage clean and focused
+- If you have more than 5 activities today, only the 5 most recent appear
+- To see all activities, visit the Activity History page
+
+**Example:** If you log "Breakfast at 8 AM" at 2 PM, and you already have 5 activities that occurred after 8 AM, breakfast will NOT appear on the homepage (because it's not in the top 5 most recent). However, it will appear in the Activity History page.
+
+### Activity History Page
+
+The Activity History page shows ALL activities within the selected time window (day/week/month), ordered chronologically by when they occurred. Use this page to:
+- View complete activity history
+- Search and filter activities
+- Review activities that don't appear in the homepage's top 5

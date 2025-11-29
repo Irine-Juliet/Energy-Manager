@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.core.paginator import Paginator
@@ -35,8 +35,8 @@ def homepage_view(request):
     # Calculate today's average energy level
     today_avg = today_activities.aggregate(Avg('energy_level'))['energy_level__avg']
 
-    # Get 5 most recent activities for today
-    recent_activities = today_activities[:5]
+    # Get 5 most recent activities for today (ordered by activity date, descending)
+    recent_activities = today_activities.order_by('-activity_date')[:5]
 
     context = {
         'today_avg': round(today_avg, 1) if today_avg is not None else None,
@@ -101,7 +101,7 @@ def dashboard_view(request):
     today_activities = Activity.objects.filter(
         user=request.user,
         activity_date__date=today
-    )
+    ).order_by('-activity_date')
     
     # Calculate today's stats
     today_count = today_activities.count()
@@ -139,6 +139,7 @@ def dashboard_view(request):
     
     # --- Build data for dashboard charts ---------------------------------
     # Activity points (for line chart): include ISO timestamp and energy level
+    # Note: today_activities is already ordered by '-activity_date' from the queryset above
     activity_points = [
         {
             'id': a.id,
@@ -156,21 +157,20 @@ def dashboard_view(request):
         avg_val = q.aggregate(Avg('energy_level'))['energy_level__avg']
         hourly_avg.append(float(avg_val) if avg_val is not None else None)
 
-    # Count how many hours (distinct hour slots) fall into each category.
-    # We treat a slot with at least one activity as 1 "hour" for this summary.
-    # Bucket each hourly average into the nearest category among [-2, -1, 0, 1, 2].
+    # Calculate total time (in hours) spent in each energy state today
+    # This sums the actual duration of activities, not hour slots
     hours_per_category = {'-2': 0, '-1': 0, '0': 0, '1': 0, '2': 0}
     categories = [-2, -1, 0, 1, 2]
-    for avg in hourly_avg:
-        if avg is None:
-            continue
-        # Find the nearest category by absolute distance
-        try:
-            nearest = min(categories, key=lambda c: abs(avg - c))
-            hours_per_category[str(int(nearest))] += 1
-        except Exception:
-            # Fallback: treat as neutral if something unexpected occurs
-            hours_per_category['0'] += 1
+    
+    for category in categories:
+        total_minutes = today_activities.filter(
+            energy_level=category
+        ).aggregate(
+            total=Sum('duration')
+        )['total'] or 0
+        
+        # Convert minutes to hours (rounded to 2 decimal places)
+        hours_per_category[str(category)] = round(total_minutes / 60.0, 2)
 
     context = {
         'today_count': today_count,
@@ -321,6 +321,9 @@ def activity_history_view(request):
     # Apply search filter on name
     if q:
         activities = activities.filter(name__icontains=q)
+
+    # Ensure consistent ordering by activity date (most recent first)
+    activities = activities.order_by('-activity_date')
 
     # Pagination
     paginator = Paginator(activities, 20)  # 20 activities per page
