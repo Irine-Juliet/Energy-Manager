@@ -133,7 +133,7 @@ jobs:
     env:
       DJANGO_SETTINGS_MODULE: energy_manager.settings
       DATABASE_URL: 'sqlite:///test_db.sqlite3'
-      SECRET_KEY: ${{ env.SECRET_KEY }}
+      SECRET_KEY: 'test-secret-key-for-ci-do-not-use-in-production'
     
     steps:
       - name: Checkout Code
@@ -173,8 +173,8 @@ jobs:
     env:
       DJANGO_SETTINGS_MODULE: energy_manager.settings
       DATABASE_URL: 'sqlite:///test_db.sqlite3'
-      SECRET_KEY: ${{ env.SECRET_KEY }}
-      TZ: ${{ env.TZ }}
+      SECRET_KEY: 'test-secret-key-for-ci-do-not-use-in-production'
+      TZ: 'America/New_York'
     
     strategy:
       fail-fast: false
