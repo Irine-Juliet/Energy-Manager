@@ -55,6 +55,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+junit/
+test_db.sqlite3
+test-results.xml
 
 # Translations
 *.mo
