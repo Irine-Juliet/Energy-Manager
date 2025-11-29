@@ -130,6 +130,10 @@ jobs:
   migrations:
     name: Test Database Migrations
     runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: energy_manager.settings
+      DATABASE_URL: 'sqlite:///test_db.sqlite3'
+      SECRET_KEY: ${{ env.SECRET_KEY }}
     
     steps:
       - name: Checkout Code
@@ -148,25 +152,29 @@ jobs:
       
       - name: Run Migrations
         run: python manage.py migrate --no-input
-        env:
-          SECRET_KEY: ${{ env.SECRET_KEY }}
-          DATABASE_URL: 'sqlite:///test_db.sqlite3'
       
       - name: Create Test Superuser
         run: |
-          python manage.py shell -c "
-          from django.contrib.auth import get_user_model;
-          User = get_user_model();
+          python - <<'PY'
+          import os
+          os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'energy_manager.settings')
+          import django
+          django.setup()
+          from django.contrib.auth import get_user_model
+          User = get_user_model()
           if not User.objects.filter(username='admin').exists():
               User.objects.create_superuser('admin', 'admin@test.com', 'testpass123')
-          "
-        env:
-          SECRET_KEY: ${{ env.SECRET_KEY }}
+          PY
 
   # Job 5: Unit & Integration Tests
   test:
     name: Run Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: energy_manager.settings
+      DATABASE_URL: 'sqlite:///test_db.sqlite3'
+      SECRET_KEY: ${{ env.SECRET_KEY }}
+      TZ: ${{ env.TZ }}
     
     strategy:
       fail-fast: false
@@ -191,16 +199,10 @@ jobs:
       
       - name: Run Migrations
         run: python manage.py migrate --no-input
-        env:
-          SECRET_KEY: ${{ env.SECRET_KEY }}
       
       - name: Run Tests with Coverage
         run: |
           pytest --verbose --create-db --cov=energy_tracker --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=0
-        env:
-          SECRET_KEY: ${{ env.SECRET_KEY }}
-          TZ: ${{ env.TZ }}
-          DJANGO_SETTINGS_MODULE: energy_manager.settings
       
       - name: Upload Coverage HTML
         uses: actions/upload-artifact@v4
