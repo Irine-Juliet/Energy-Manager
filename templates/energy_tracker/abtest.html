@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Team - Energy Manager{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12">
+    <div class="bg-white rounded-xl shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">Team constipated-Lemon</h1>
+        
+        <!-- Team Members List -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Team Members</h2>
+            <ul class="space-y-2">
+                {% for member in team_members %}
+                <li class="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">{{ member }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <!-- A/B Test Button -->
+        <div class="text-center mt-8">
+            <button 
+                id="abtest" 
+                class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            >
+                {{ button_text }}
+            </button>
+            <p class="text-sm text-gray-500 mt-4">Variant: {{ variant }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

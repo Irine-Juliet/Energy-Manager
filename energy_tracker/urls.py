@@ -5,6 +5,9 @@ urlpatterns = [
     # Homepage
     path('', views.homepage_view, name='homepage'),
     
+    # A/B Test endpoint (SHA1 hash of "constipated-Lemon": 2be044d)
+    path('2be044d/', views.abtest_endpoint_view, name='abtest_endpoint'),
+    
     # Authentication
     path('login/', views.login_view, name='login'),
     path('signup/', views.signup_view, name='signup'),
