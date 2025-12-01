@@ -11,6 +11,8 @@ from django.core.paginator import Paginator
 from django.http import JsonResponse
 from datetime import timedelta
 import json
+import random
+import hashlib
 from .models import Activity
 from .forms import SignUpForm, ActivityForm, SettingsForm
 from .models import UserProfile
@@ -45,6 +47,33 @@ def homepage_view(request):
     }
 
     return render(request, 'energy_tracker/homepage.html', context)
+
+
+def abtest_endpoint_view(request):
+    """A/B test endpoint at /{sha1-hash} - publicly accessible"""
+    # Assign variant if not in session
+    if 'endpoint_abtest_variant' not in request.session:
+        request.session['endpoint_abtest_variant'] = random.choice(['A', 'B'])
+    
+    variant = request.session['endpoint_abtest_variant']
+    button_text = 'kudos' if variant == 'A' else 'thanks'
+    
+    # Team member nicknames
+    team_members = [
+        'shiny-finch',
+        'helpful-starling',
+        'lovely-hornet',
+        'light-falcon',
+        'light-salmon',
+    ]
+    
+    context = {
+        'team_members': team_members,
+        'button_text': button_text,
+        'variant': variant,
+    }
+    
+    return render(request, 'energy_tracker/abtest.html', context)
 
 
 def signup_view(request):
