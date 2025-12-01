@@ -124,7 +124,8 @@ def logout_view(request):
 @login_required
 def dashboard_view(request):
     """Dashboard with daily summary and simple chart data"""
-    today = timezone.now().date()
+    # Get today's date in the local timezone
+    today = timezone.localtime(timezone.now()).date()
     
     # Get today's activities
     today_activities = Activity.objects.filter(

@@ -127,14 +127,23 @@ class TestDashboardView:
         
         assert response.status_code == 200
         
-        # Check today's count
-        if 'today_count' in response.context:
-            assert response.context['today_count'] == 3
+        # Check today's count - should be 3
+        assert 'today_count' in response.context
+        assert response.context['today_count'] == 3
         
         # Check today's average
-        if 'today_avg' in response.context:
-            avg = response.context['today_avg']
-            assert avg is not None
+        assert 'today_avg' in response.context
+        avg = response.context['today_avg']
+        assert avg is not None
+        # Average should be (2 + 1 + (-1)) / 3 = 0.67
+        assert 0.6 <= avg <= 0.7
+        
+        # Check today's average
+        assert 'today_avg' in response.context
+        avg = response.context['today_avg']
+        assert avg is not None
+        # Average should be (2 + 1 + (-1)) / 3 = 0.67
+        assert 0.6 <= avg <= 0.7
 
     def test_dashboard_weekly_data_structure(self, authenticated_client, user):
         """Test that weekly data is properly structured."""
