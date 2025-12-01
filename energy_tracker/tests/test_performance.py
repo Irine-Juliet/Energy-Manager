@@ -123,8 +123,9 @@ class TestPerformanceOptimization:
         Activity.objects.bulk_create(activities)
         
         # Time the first page load
+        # Use 'month' view to include all test activities (default 'day' view would filter most out)
         start_time = time.time()
-        response = authenticated_client.get(reverse('activity_history'))
+        response = authenticated_client.get(reverse('activity_history'), {'view': 'month'})
         end_time = time.time()
         
         assert response.status_code == 200
