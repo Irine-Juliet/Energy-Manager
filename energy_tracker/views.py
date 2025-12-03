@@ -50,30 +50,109 @@ def homepage_view(request):
 
 
 def abtest_endpoint_view(request):
-    """A/B test endpoint at /{sha1-hash} - publicly accessible"""
-    # Assign variant if not in session
-    if 'endpoint_abtest_variant' not in request.session:
-        request.session['endpoint_abtest_variant'] = random.choice(['A', 'B'])
+    """A/B test endpoint at /{sha1-hash} - publicly accessible with client-side A/B testing"""
+    # No server-side variant assignment needed - all handled by client-side JavaScript with GA4 tracking
+    return render(request, 'energy_tracker/abtest.html')
+
+
+def abtest_log_event_view(request):
+    """API endpoint to log A/B test events"""
+    if request.method == 'POST':
+        import json
+        from .models import ABTestEvent
+        
+        try:
+            data = json.loads(request.body)
+            event_type = data.get('event_type')
+            variant = data.get('variant')
+            session_id = data.get('session_id', '')
+            
+            # Get client info
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+            
+            # Get IP address
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip_address = x_forwarded_for.split(',')[0]
+            else:
+                ip_address = request.META.get('REMOTE_ADDR')
+            
+            # Create event
+            ABTestEvent.objects.create(
+                event_type=event_type,
+                variant=variant,
+                session_id=session_id,
+                user_agent=user_agent,
+                ip_address=ip_address
+            )
+            
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     
-    variant = request.session['endpoint_abtest_variant']
-    button_text = 'kudos' if variant == 'A' else 'thanks'
+    return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+
+
+def abtest_results_view(request):
+    """Dashboard view to display A/B test analytics"""
+    from .models import ABTestEvent
+    from django.db.models import Count, Q
     
-    # Team member nicknames
-    team_members = [
-        'shiny-finch',
-        'helpful-starling',
-        'lovely-hornet',
-        'light-falcon',
-        'light-salmon',
-    ]
+    # Get aggregated data
+    variant_shown_stats = ABTestEvent.objects.filter(
+        event_type='variant_shown'
+    ).values('variant').annotate(
+        count=Count('id')
+    ).order_by('variant')
+    
+    button_click_stats = ABTestEvent.objects.filter(
+        event_type='button_click'
+    ).values('variant').annotate(
+        count=Count('id')
+    ).order_by('variant')
+    
+    # Convert to dictionaries for easier access
+    shown_dict = {item['variant']: item['count'] for item in variant_shown_stats}
+    clicks_dict = {item['variant']: item['count'] for item in button_click_stats}
+    
+    # Calculate statistics for each variant
+    variants_data = []
+    for variant in ['kudos', 'thanks']:
+        shown = shown_dict.get(variant, 0)
+        clicks = clicks_dict.get(variant, 0)
+        conversion_rate = (clicks / shown * 100) if shown > 0 else 0
+        
+        variants_data.append({
+            'variant': variant,
+            'variant_display': variant.capitalize(),
+            'shown': shown,
+            'clicks': clicks,
+            'conversion_rate': round(conversion_rate, 2)
+        })
+    
+    # Total stats
+    total_page_views = ABTestEvent.objects.filter(event_type='page_view').count()
+    total_shown = sum(shown_dict.values())
+    total_clicks = sum(clicks_dict.values())
+    total_conversion = (total_clicks / total_shown * 100) if total_shown > 0 else 0
+    
+    # Recent events (last 50)
+    recent_events = ABTestEvent.objects.all()[:50]
+    
+    # Unique sessions
+    unique_sessions = ABTestEvent.objects.values('session_id').distinct().count()
     
     context = {
-        'team_members': team_members,
-        'button_text': button_text,
-        'variant': variant,
+        'variants_data': variants_data,
+        'total_page_views': total_page_views,
+        'total_shown': total_shown,
+        'total_clicks': total_clicks,
+        'total_conversion': round(total_conversion, 2),
+        'recent_events': recent_events,
+        'unique_sessions': unique_sessions,
     }
     
-    return render(request, 'energy_tracker/abtest.html', context)
+    return render(request, 'energy_tracker/abtest_results.html', context)
 
 
 def signup_view(request):
