@@ -17,8 +17,17 @@
 {% block content %}
 <div class="max-w-4xl mx-auto py-12">
     <div class="bg-white rounded-xl shadow-lg p-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">A/B Test Page</h1>
-        <p class="text-center text-gray-600 mb-4">Testing button variants: "Kudos" vs "Thanks"</p>
+        <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">Team constipated-Lemon</h1>
+        
+        <!-- Team Members List -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Team Members</h2>
+            <ul class="space-y-2">
+                {% for member in team_members %}
+                <li class="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">{{ member }}</li>
+                {% endfor %}
+            </ul>
+        </div>
         
         <!-- Link to Results -->
         <div class="text-center mb-8">
@@ -155,16 +164,31 @@
     }
     
     /**
-     * Randomly select a variant with 50/50 split
+     * Randomly select a variant with 50/50 split (session-persistent)
      * @returns {string} Either 'kudos' or 'thanks'
      */
     function selectVariant() {
-        // 50/50 random split using Math.random()
-        if (Math.random() < 0.5) {
-            return 'kudos';
-        } else {
-            return 'thanks';
+        // Check if variant is already stored in localStorage for this session
+        let storedVariant = localStorage.getItem('ab_test_variant');
+        
+        if (storedVariant) {
+            console.log('Using stored variant:', storedVariant);
+            return storedVariant;
         }
+        
+        // 50/50 random split using Math.random()
+        let newVariant;
+        if (Math.random() < 0.5) {
+            newVariant = 'kudos';
+        } else {
+            newVariant = 'thanks';
+        }
+        
+        // Store variant in localStorage for session persistence
+        localStorage.setItem('ab_test_variant', newVariant);
+        console.log('New variant assigned:', newVariant);
+        
+        return newVariant;
     }
     
     /**
@@ -210,11 +234,11 @@
         
         // Set button text and styling based on variant
         if (variant === 'kudos') {
-            button.textContent = '👏 Give Kudos';
-            button.className = 'px-8 py-4 bg-green-600 hover:bg-green-700 text-white text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200';
+            button.textContent = 'kudos';
+            button.className = 'px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200';
         } else {
-            button.textContent = '🙏 Say Thanks';
-            button.className = 'px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200';
+            button.textContent = 'thanks';
+            button.className = 'px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200';
         }
         
         // Add click event listener
@@ -261,13 +285,8 @@
      */
     function updateDebugInfo(variant) {
         const debugElement = document.getElementById('debug-variant');
-        debugElement.textContent = variant.toUpperCase();
-        
-        if (variant === 'kudos') {
-            debugElement.className = 'ml-2 px-3 py-1 rounded-full text-white font-medium bg-green-600';
-        } else {
-            debugElement.className = 'ml-2 px-3 py-1 rounded-full text-white font-medium bg-blue-600';
-        }
+        debugElement.textContent = variant;
+        debugElement.className = 'ml-2 px-3 py-1 rounded-full text-white font-medium bg-indigo-600';
     }
     
     // Initialize the A/B test when DOM is ready
