@@ -9,6 +9,7 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from datetime import timedelta
 import json
 import random
@@ -51,10 +52,23 @@ def homepage_view(request):
 
 def abtest_endpoint_view(request):
     """A/B test endpoint at /{sha1-hash} - publicly accessible with client-side A/B testing"""
-    # No server-side variant assignment needed - all handled by client-side JavaScript with GA4 tracking
-    return render(request, 'energy_tracker/abtest.html')
+    # Team member nicknames
+    team_members = [
+        'shiny-finch',
+        'helpful-starling',
+        'lovely-hornet',
+        'light-falcon',
+        'light-salmon',
+    ]
+    
+    context = {
+        'team_members': team_members,
+    }
+    
+    return render(request, 'energy_tracker/abtest.html', context)
 
 
+@csrf_exempt
 def abtest_log_event_view(request):
     """API endpoint to log A/B test events"""
     if request.method == 'POST':
