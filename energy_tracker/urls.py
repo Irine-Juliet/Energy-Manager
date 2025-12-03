@@ -7,6 +7,8 @@ urlpatterns = [
     
     # A/B Test endpoint (SHA1 hash of "constipated-Lemon": 2be044d)
     path('2be044d/', views.abtest_endpoint_view, name='abtest_endpoint'),
+    path('ab-test/log-event/', views.abtest_log_event_view, name='abtest_log_event'),
+    path('ab-test/results/', views.abtest_results_view, name='abtest_results'),
     
     # Authentication
     path('login/', views.login_view, name='login'),

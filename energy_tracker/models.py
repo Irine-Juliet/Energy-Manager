@@ -101,3 +101,38 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.create(user=instance)
     else:
         UserProfile.objects.get_or_create(user=instance)
+
+
+class ABTestEvent(models.Model):
+    """Track A/B test events for button variant testing"""
+    EVENT_TYPES = [
+        ('page_view', 'Page View'),
+        ('variant_shown', 'Variant Shown'),
+        ('button_click', 'Button Click'),
+    ]
+    
+    VARIANT_CHOICES = [
+        ('kudos', 'Kudos'),
+        ('thanks', 'Thanks'),
+    ]
+    
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPES)
+    variant = models.CharField(max_length=20, choices=VARIANT_CHOICES, null=True, blank=True)
+    session_id = models.CharField(max_length=100, help_text='Browser session identifier')
+    user_agent = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        app_label = 'energy_tracker'
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['event_type', 'variant']),
+            models.Index(fields=['session_id']),
+            models.Index(fields=['-timestamp']),
+        ]
+    
+    def __str__(self):
+        if self.variant:
+            return f"{self.event_type} - {self.variant} at {self.timestamp}"
+        return f"{self.event_type} at {self.timestamp}"

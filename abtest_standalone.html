@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A/B Test - Button Variants</title>
+    
+    <!-- Google Analytics 4 Setup -->
+    <!-- TODO: Replace G-TEST123456 with your real Google Analytics measurement ID -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-TEST123456"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-TEST123456');
+    </script>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="max-w-4xl mx-auto py-12 px-4">
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">A/B Test Page</h1>
+            <p class="text-center text-gray-600 mb-8">Testing button variants: "Kudos" vs "Thanks"</p>
+            
+            <!-- Button container - variant will be inserted here -->
+            <div id="button-container" class="text-center mb-6" style="min-height: 80px;">
+                <!-- Button will be dynamically inserted here -->
+            </div>
+            
+            <!-- Feedback message -->
+            <div id="feedback-message" class="text-center text-green-600 font-semibold mb-6" style="display: none; min-height: 30px;">
+                ✓ Thank you for clicking!
+            </div>
+            
+            <!-- Debug info (optional - remove in production) -->
+            <div class="mt-8 bg-gray-50 rounded-lg p-6 border border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Debug Information</h3>
+                <p class="text-gray-700">
+                    <strong>Current Variant:</strong> 
+                    <span id="debug-variant" class="ml-2 px-3 py-1 rounded-full text-white font-medium"></span>
+                </p>
+                <p class="text-sm text-gray-500 mt-2">Check your browser console for GA event logs</p>
+                <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                    <strong>⚠️ Remember:</strong> Replace <code class="bg-yellow-100 px-1 rounded">G-TEST123456</code> with your real Google Analytics measurement ID
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================================================
+    // A/B Test Implementation with Google Analytics 4 Tracking
+    // ============================================================================
+    
+    (function() {
+        'use strict';
+        
+        // Variable to store the current variant
+        let currentVariant = '';
+        
+        /**
+         * Initialize the A/B test on page load
+         */
+        function initABTest() {
+            // Step 1: Track page view
+            trackPageView();
+            
+            // Step 2: Randomly select variant (50/50 split)
+            currentVariant = selectVariant();
+            
+            // Step 3: Track which variant was shown
+            trackVariantShown(currentVariant);
+            
+            // Step 4: Render the button
+            renderButton(currentVariant);
+            
+            // Update debug info
+            updateDebugInfo(currentVariant);
+        }
+        
+        /**
+         * Track page view event
+         * Event name: ab_test_page_view
+         * Parameters: { page: '/ab-test' }
+         */
+        function trackPageView() {
+            gtag('event', 'ab_test_page_view', {
+                page: '/ab-test'
+            });
+            console.log('GA Event: ab_test_page_view - page: /ab-test');
+        }
+        
+        /**
+         * Randomly select a variant with 50/50 split
+         * Uses Math.random() for randomization
+         * @returns {string} Either 'kudos' or 'thanks'
+         */
+        function selectVariant() {
+            // 50/50 random split using Math.random()
+            if (Math.random() < 0.5) {
+                return 'kudos';
+            } else {
+                return 'thanks';
+            }
+        }
+        
+        /**
+         * Track that a variant was shown to the user
+         * Event name: variant_shown
+         * Parameters: { variant: 'kudos' | 'thanks' }
+         * @param {string} variant - The variant that was shown
+         */
+        function trackVariantShown(variant) {
+            gtag('event', 'variant_shown', {
+                variant: variant
+            });
+            console.log('GA Event: variant_shown - variant:', variant);
+        }
+        
+        /**
+         * Track button click event
+         * Event name: button_click
+         * Parameters: { variant: 'kudos' | 'thanks' }
+         * @param {string} variant - The variant that was clicked
+         */
+        function trackButtonClick(variant) {
+            gtag('event', 'button_click', {
+                variant: variant
+            });
+            console.log('GA Event: button_click - variant:', variant);
+        }
+        
+        /**
+         * Render the button based on the selected variant
+         * @param {string} variant - The variant to render
+         */
+        function renderButton(variant) {
+            const container = document.getElementById('button-container');
+            
+            // Create button element
+            const button = document.createElement('button');
+            button.id = 'ab-test-button';
+            
+            // Set button text and styling based on variant
+            if (variant === 'kudos') {
+                button.textContent = '👏 Give Kudos';
+                button.className = 'px-8 py-4 bg-green-600 hover:bg-green-700 text-white text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200';
+            } else {
+                button.textContent = '🙏 Say Thanks';
+                button.className = 'px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200';
+            }
+            
+            // Add click event listener
+            button.addEventListener('click', function() {
+                handleButtonClick(variant);
+            });
+            
+            // Insert button into container
+            container.innerHTML = '';
+            container.appendChild(button);
+        }
+        
+        /**
+         * Handle button click
+         * @param {string} variant - The variant that was clicked
+         */
+        function handleButtonClick(variant) {
+            // Track the click event
+            trackButtonClick(variant);
+            
+            // Show feedback message
+            const feedbackMessage = document.getElementById('feedback-message');
+            const button = document.getElementById('ab-test-button');
+            
+            feedbackMessage.style.display = 'block';
+            button.disabled = true;
+            button.classList.add('opacity-70', 'cursor-not-allowed');
+            button.classList.remove('hover:scale-105', 'hover:shadow-xl');
+            button.textContent = '✓ Clicked!';
+            
+            // Optional: Re-enable after 3 seconds
+            setTimeout(function() {
+                feedbackMessage.style.display = 'none';
+                button.disabled = false;
+                button.classList.remove('opacity-70', 'cursor-not-allowed');
+                button.classList.add('hover:scale-105', 'hover:shadow-xl');
+                renderButton(variant); // Re-render with original text
+            }, 3000);
+        }
+        
+        /**
+         * Update debug information display
+         * @param {string} variant - The current variant
+         */
+        function updateDebugInfo(variant) {
+            const debugElement = document.getElementById('debug-variant');
+            debugElement.textContent = variant.toUpperCase();
+            
+            if (variant === 'kudos') {
+                debugElement.className = 'ml-2 px-3 py-1 rounded-full text-white font-medium bg-green-600';
+            } else {
+                debugElement.className = 'ml-2 px-3 py-1 rounded-full text-white font-medium bg-blue-600';
+            }
+        }
+        
+        // Initialize the A/B test when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initABTest);
+        } else {
+            initABTest();
+        }
+    })();
+    </script>
+</body>
+</html>

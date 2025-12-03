@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}A/B Test Results - Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-12 px-4">
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">A/B Test Analytics Dashboard</h1>
+        <p class="text-gray-600">Real-time results from your button variant testing</p>
+        <div class="mt-4">
+            <a href="{% url 'abtest_endpoint' %}" class="text-blue-600 hover:text-blue-800 underline">
+                ← Go to A/B Test Page
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-blue-500">
+            <div class="text-gray-500 text-sm font-semibold uppercase">Total Page Views</div>
+            <div class="text-3xl font-bold text-gray-900 mt-2">{{ total_page_views }}</div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-purple-500">
+            <div class="text-gray-500 text-sm font-semibold uppercase">Variants Shown</div>
+            <div class="text-3xl font-bold text-gray-900 mt-2">{{ total_shown }}</div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-green-500">
+            <div class="text-gray-500 text-sm font-semibold uppercase">Total Clicks</div>
+            <div class="text-3xl font-bold text-gray-900 mt-2">{{ total_clicks }}</div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-yellow-500">
+            <div class="text-gray-500 text-sm font-semibold uppercase">Overall Conversion</div>
+            <div class="text-3xl font-bold text-gray-900 mt-2">{{ total_conversion }}%</div>
+        </div>
+    </div>
+
+    <!-- Variant Comparison -->
+    <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Variant Performance Comparison</h2>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b-2 border-gray-200">
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variant</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Times Shown</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Button Clicks</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conversion Rate</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visual</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for variant in variants_data %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <span class="px-3 py-1 rounded-full text-white font-semibold
+                                    {% if variant.variant == 'kudos' %}bg-green-600{% else %}bg-blue-600{% endif %}">
+                                    {% if variant.variant == 'kudos' %}👏 Kudos{% else %}🙏 Thanks{% endif %}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-lg font-medium text-gray-900">
+                            {{ variant.shown }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-lg font-medium text-gray-900">
+                            {{ variant.clicks }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-2xl font-bold 
+                                {% if variant.conversion_rate >= 50 %}text-green-600{% else %}text-gray-900{% endif %}">
+                                {{ variant.conversion_rate }}%
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="w-full bg-gray-200 rounded-full h-4">
+                                <div class="h-4 rounded-full {% if variant.variant == 'kudos' %}bg-green-600{% else %}bg-blue-600{% endif %}" 
+                                     style="width: {{ variant.conversion_rate }}%"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Winner Indicator -->
+        {% if total_shown > 0 %}
+        <div class="mt-8 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+            <div class="flex items-center">
+                <span class="text-2xl mr-3">🏆</span>
+                <div>
+                    <p class="text-lg font-bold text-yellow-800">
+                        {% if variants_data.0.conversion_rate > variants_data.1.conversion_rate %}
+                            "{{ variants_data.0.variant_display }}" is winning with {{ variants_data.0.conversion_rate }}% conversion!
+                        {% elif variants_data.1.conversion_rate > variants_data.0.conversion_rate %}
+                            "{{ variants_data.1.variant_display }}" is winning with {{ variants_data.1.conversion_rate }}% conversion!
+                        {% else %}
+                            Both variants are performing equally!
+                        {% endif %}
+                    </p>
+                    <p class="text-sm text-yellow-700 mt-1">
+                        Based on {{ total_shown }} total impressions and {{ total_clicks }} clicks
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Additional Stats -->
+    <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Session Statistics</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <div class="text-gray-600 font-semibold">Unique Sessions</div>
+                <div class="text-3xl font-bold text-gray-900 mt-2">{{ unique_sessions }}</div>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <div class="text-gray-600 font-semibold">Average Events per Session</div>
+                <div class="text-3xl font-bold text-gray-900 mt-2">
+                    {% if unique_sessions > 0 %}
+                        {{ total_page_views|add:total_shown|add:total_clicks|floatformat:1|default:"0" }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Events -->
+    <div class="bg-white rounded-xl shadow-lg p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Recent Events (Last 50)</h2>
+        
+        {% if recent_events %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b-2 border-gray-200">
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event Type</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Variant</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session ID</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for event in recent_events %}
+                    <tr class="hover:bg-gray-50 text-sm">
+                        <td class="px-4 py-3 whitespace-nowrap text-gray-600">
+                            {{ event.timestamp|date:"M d, Y H:i:s" }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="px-2 py-1 rounded text-xs font-semibold
+                                {% if event.event_type == 'page_view' %}bg-blue-100 text-blue-800
+                                {% elif event.event_type == 'variant_shown' %}bg-purple-100 text-purple-800
+                                {% else %}bg-green-100 text-green-800{% endif %}">
+                                {{ event.get_event_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            {% if event.variant %}
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold text-white
+                                    {% if event.variant == 'kudos' %}bg-green-600{% else %}bg-blue-600{% endif %}">
+                                    {{ event.get_variant_display }}
+                                </span>
+                            {% else %}
+                                <span class="text-gray-400">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-gray-500 font-mono text-xs">
+                            {{ event.session_id|truncatechars:20 }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-gray-500">
+            <p class="text-lg">No events recorded yet.</p>
+            <p class="mt-2">Visit the <a href="{% url 'abtest_endpoint' %}" class="text-blue-600 hover:underline">A/B test page</a> to generate some data!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Refresh Info -->
+    <div class="mt-8 text-center text-gray-500 text-sm">
+        <p>Data refreshes on page reload. Last updated: {{ "now"|date:"M d, Y H:i:s" }}</p>
+        <button onclick="window.location.reload()" 
+                class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+            🔄 Refresh Data
+        </button>
+    </div>
+</div>
+{% endblock %}
