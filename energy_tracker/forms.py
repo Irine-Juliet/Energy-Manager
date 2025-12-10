@@ -43,6 +43,10 @@ class SignUpForm(UserCreationForm):
 
 class ActivityForm(forms.ModelForm):
     """Form for logging activities"""
+    # Allow activity_date to be optional in the form (view will fill with now())
+    activity_date = forms.DateTimeField(required=False, widget=forms.HiddenInput(attrs={
+        'id': 'activity_date'
+    }))
     duration_hours = forms.IntegerField(
         min_value=0,
         max_value=24,
