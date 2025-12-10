@@ -12,9 +12,3 @@ class Migration(migrations.Migration):
     ]
 
     operations = []
-        ('energy_tracker', '0002_userprofile'),
-        ('energy_tracker', '0004_change_energy_scale'),
-    ]
-
-    operations = [
-    ]
