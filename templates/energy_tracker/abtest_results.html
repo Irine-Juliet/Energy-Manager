@@ -16,39 +16,23 @@
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-blue-500">
-            <div class="flex items-center justify-between">
-                <div class="text-gray-500 text-sm font-semibold uppercase">Total Page Views</div>
-                <span class="text-xs text-blue-500" title="System-wide data">🌐</span>
-            </div>
+            <div class="text-gray-500 text-sm font-semibold uppercase">Total Page Views</div>
             <div class="text-3xl font-bold text-gray-900 mt-2">{{ total_page_views }}</div>
-            <p class="text-xs text-gray-400 mt-1">All users combined</p>
         </div>
         
         <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-purple-500">
-            <div class="flex items-center justify-between">
-                <div class="text-gray-500 text-sm font-semibold uppercase">Variants Shown</div>
-                <span class="text-xs text-purple-500" title="System-wide data">🌐</span>
-            </div>
+            <div class="text-gray-500 text-sm font-semibold uppercase">Variants Shown</div>
             <div class="text-3xl font-bold text-gray-900 mt-2">{{ total_shown }}</div>
-            <p class="text-xs text-gray-400 mt-1">All users combined</p>
         </div>
         
         <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-green-500">
-            <div class="flex items-center justify-between">
-                <div class="text-gray-500 text-sm font-semibold uppercase">Total Clicks</div>
-                <span class="text-xs text-green-500" title="System-wide data">🌐</span>
-            </div>
+            <div class="text-gray-500 text-sm font-semibold uppercase">Total Clicks</div>
             <div class="text-3xl font-bold text-gray-900 mt-2">{{ total_clicks }}</div>
-            <p class="text-xs text-gray-400 mt-1">All users combined</p>
         </div>
         
         <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-yellow-500">
-            <div class="flex items-center justify-between">
-                <div class="text-gray-500 text-sm font-semibold uppercase">Overall Conversion</div>
-                <span class="text-xs text-yellow-500" title="System-wide data">🌐</span>
-            </div>
+            <div class="text-gray-500 text-sm font-semibold uppercase">Overall Conversion</div>
             <div class="text-3xl font-bold text-gray-900 mt-2">{{ total_conversion }}%</div>
-            <p class="text-xs text-gray-400 mt-1">All users combined</p>
         </div>
     </div>
 
@@ -199,63 +183,5 @@
         </div>
         {% endif %}
     </div>
-
-    <!-- Refresh Info -->
-    <div class="mt-8 text-center text-gray-500 text-sm">
-        <p>📡 Real-time system-wide data. Last updated: <span id="lastUpdate">{{ "now"|date:"M d, Y H:i:s" }}</span></p>
-        <p class="mt-1 text-xs">Auto-refresh: <span id="autoRefreshStatus" class="font-semibold text-green-600">Enabled (every 30s)</span></p>
-        <div class="mt-3 space-x-2">
-            <button onclick="window.location.reload()" 
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                🔄 Refresh Now
-            </button>
-            <button onclick="toggleAutoRefresh()" 
-                    id="toggleRefreshBtn"
-                    class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
-                ⏸️ Pause Auto-Refresh
-            </button>
-        </div>
-    </div>
 </div>
-
-<script>
-    // Auto-refresh functionality
-    let autoRefreshEnabled = true;
-    let refreshInterval;
-
-    function startAutoRefresh() {
-        refreshInterval = setInterval(() => {
-            if (autoRefreshEnabled) {
-                console.log('Auto-refreshing analytics data...');
-                window.location.reload();
-            }
-        }, 30000); // 30 seconds
-    }
-
-    function toggleAutoRefresh() {
-        autoRefreshEnabled = !autoRefreshEnabled;
-        const statusEl = document.getElementById('autoRefreshStatus');
-        const btnEl = document.getElementById('toggleRefreshBtn');
-        
-        if (autoRefreshEnabled) {
-            statusEl.textContent = 'Enabled (every 30s)';
-            statusEl.className = 'font-semibold text-green-600';
-            btnEl.innerHTML = '⏸️ Pause Auto-Refresh';
-        } else {
-            statusEl.textContent = 'Paused';
-            statusEl.className = 'font-semibold text-red-600';
-            btnEl.innerHTML = '▶️ Resume Auto-Refresh';
-        }
-    }
-
-    // Start auto-refresh on page load
-    startAutoRefresh();
-
-    // Clear interval when page is about to unload
-    window.addEventListener('beforeunload', () => {
-        if (refreshInterval) {
-            clearInterval(refreshInterval);
-        }
-    });
-</script>
 {% endblock %}

@@ -108,12 +108,11 @@ def abtest_log_event_view(request):
 
 
 def abtest_results_view(request):
-    """Dashboard view to display A/B test analytics - Shows system-wide data for all users"""
+    """Dashboard view to display A/B test analytics"""
     from .models import ABTestEvent
     from django.db.models import Count, Q
-    from django.views.decorators.cache import never_cache
     
-    # Get aggregated data from ALL events (system-wide, not per-user)
+    # Get aggregated data
     variant_shown_stats = ABTestEvent.objects.filter(
         event_type='variant_shown'
     ).values('variant').annotate(
@@ -167,12 +166,7 @@ def abtest_results_view(request):
         'unique_sessions': unique_sessions,
     }
     
-    # Render response with cache-control headers to ensure fresh data
-    response = render(request, 'energy_tracker/abtest_results.html', context)
-    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-    response['Pragma'] = 'no-cache'
-    response['Expires'] = '0'
-    return response
+    return render(request, 'energy_tracker/abtest_results.html', context)
 
 
 def signup_view(request):
